@@ -1,0 +1,184 @@
+{
+  "_rules": "Only edit `passes` and `notes`. Never delete, reorder, or reword features. Set passes=true only after every verify step succeeded.",
+  "features": [
+    {
+      "id": "F000",
+      "milestone": "v1",
+      "title": "Design pass in Stitch: design system + core screens exported to docs/design/",
+      "verify": [
+        "Stitch project has a design system (colors, type, spacing) and screens: appointment list, add/edit appointment, settings, notification/character look",
+        "docs/design/DESIGN.md describes the design system as Tailwind-compatible tokens",
+        "docs/design/screens/ has a screenshot + HTML export per screen",
+        "Must run locally (Stitch MCP is not available in cloud sessions)"
+      ],
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "F001",
+      "milestone": "v1",
+      "title": "Scaffold Expo + TypeScript + Expo Router + NativeWind with lint, typecheck, tests",
+      "verify": [
+        "npx create-expo-app result uses src/app for routes and TypeScript strict mode",
+        "NativeWind configured with tokens from docs/design/DESIGN.md; placeholder screen uses Tailwind classes",
+        "package.json has scripts: lint, typecheck, test",
+        "bash scripts/check.sh passes",
+        "npx expo start --web serves a placeholder home screen"
+      ],
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "F002",
+      "milestone": "v1",
+      "title": "Domain types and computeLeaveBy",
+      "verify": [
+        "src/types defines Appointment, Intensity, Tone per docs/PLAN.md",
+        "computeLeaveBy unit tests cover buffer, zero travel, midnight crossing",
+        "bash scripts/check.sh passes"
+      ],
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "F003",
+      "milestone": "v1",
+      "title": "buildSeries: escalation schedule with intensity and in-person rules",
+      "verify": [
+        "Unit tests: in-person event yields 6 steps at -30,-10,0,+3,+6,+10 min from leaveBy",
+        "Unit tests: non-in-person yields 1 polite step",
+        "Unit tests: mild never exceeds sarcastic tone; steps already in the past are skipped (now injected)",
+        "bash scripts/check.sh passes"
+      ],
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "F004",
+      "milestone": "v1",
+      "title": "Insult bank and line selection (character voice, unique per series, practical cue)",
+      "verify": [
+        "Bank has lines for every tone x intensity",
+        "Unit tests: lines unique within a series; every line includes a minutes/leave cue",
+        "Reviewer confirms no identity/appearance/ability/protected-trait insults",
+        "bash scripts/check.sh passes"
+      ],
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "F005",
+      "milestone": "v1",
+      "title": "Appointment storage + list/add/edit screens",
+      "verify": [
+        "Can create, edit, delete an appointment with title, start, travel minutes, in-person, intensity",
+        "Data persists across app reload (web and Expo Go)",
+        "bash scripts/check.sh passes"
+      ],
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "F006",
+      "milestone": "v1",
+      "title": "Schedule and cancel notification series (64-cap aware)",
+      "verify": [
+        "Saving an in-person appointment schedules its series; editing reschedules; deleting cancels",
+        "Only the next 2 in-person appointments have series scheduled; top-up on app foreground",
+        "Unit tests for scheduling policy with a fake notifications service",
+        "Manual: event 2 min out on a real phone via Expo Go produces escalating notifications",
+        "bash scripts/check.sh passes"
+      ],
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "F007",
+      "milestone": "v1",
+      "title": "\"I've left\" and \"I'm genuinely stuck\" actions (notification + in-app)",
+      "verify": [
+        "Notification action button 'I've left' cancels remaining series and marks appointment left",
+        "'I'm genuinely stuck' replaces remaining series with supportive tone",
+        "Manual check on a real phone",
+        "bash scripts/check.sh passes"
+      ],
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "F008",
+      "milestone": "v1",
+      "title": "Settings: default intensity, buffer minutes, mute today",
+      "verify": [
+        "Settings persist; new appointments use defaults",
+        "Mute today cancels today's series and suppresses scheduling until midnight",
+        "bash scripts/check.sh passes"
+      ],
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "F009",
+      "milestone": "v2",
+      "title": "Serverless lines proxy calling Claude API",
+      "verify": [
+        "server/ function: POST /lines {title, intensity, tones[]} returns 6 lines; key read from env",
+        "Rate limit per device id; prompt forbids identity/protected-trait insults",
+        "No API key in repo (architecture check passes)",
+        "bash scripts/check.sh passes"
+      ],
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "F010",
+      "milestone": "v2",
+      "title": "Generate lines on create/edit with bank fallback",
+      "verify": [
+        "Creating an event stores Claude-generated lines; series uses them",
+        "With network off, creation succeeds and bank lines are used",
+        "bash scripts/check.sh passes"
+      ],
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "F011",
+      "milestone": "v2",
+      "title": "Import events from device calendar (expo-calendar)",
+      "verify": [
+        "User picks calendars; upcoming events with a location are offered as in-person",
+        "User confirms travel minutes before import; re-import doesn't duplicate (calendarEventId)",
+        "bash scripts/check.sh passes"
+      ],
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "F012",
+      "milestone": "v3",
+      "title": "EAS development build + home location + geofence departure",
+      "verify": [
+        "eas build --profile development succeeds for at least one platform",
+        "User sets home; two-step Always-location permission flow with rationale",
+        "Leaving home geofence marks appointment left and cancels its series (real device)",
+        "'I've left' button becomes 10-min snooze with a roast",
+        "bash scripts/check.sh passes"
+      ],
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "F013",
+      "milestone": "v3",
+      "title": "On-time streaks and positive message",
+      "verify": [
+        "Departing before leaveBy increments streak and sends one positive message",
+        "Late departure resets streak",
+        "bash scripts/check.sh passes"
+      ],
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}
