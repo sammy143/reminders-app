@@ -32,31 +32,44 @@ export type SeriesInput = Pick<
 /**
  * Notification steps for one appointment, per docs/PLAN.md "Escalation schedule".
  *
- * - In-person: up to 6 steps at −30, −10, 0, +3, +6, +10 min from leaveBy; steps with
- *   `at < now` are dropped and the rest keep their original step numbers.
- * - Not in-person: only step 1 (polite). If it is already past but `now < startsAt`, it is
- *   pulled forward to `now` (keeping `minutesFromLeaveBy: -30`); from startsAt on, `[]`.
+ * - In-person: steps 1–6 at −30, −10, 0, +3, +6, +10 min from leaveBy.
+ * - Not in-person: only step 1 (polite).
  * - Intensity caps the tone: mild ≤ sarcastic, spicy ≤ savage, savage uncapped.
+ * - Steps with `at >= now` are kept with their original step numbers. While `now < startsAt`,
+ *   the most recent passed step (last with `at < now`) is pulled forward to `at = now` and
+ *   leads the result; earlier passed steps are dropped. No pull when a step is exactly at
+ *   `now` (it already fires now) or from startsAt on.
+ * - `minutesFromLeaveBy` is always `(at − leaveBy) / 60000`, so a pulled step carries its real
+ *   (possibly fractional) offset.
  *
  * Throws RangeError on invalid input (see computeLeaveBy).
  */
 export function buildSeries(appointment: SeriesInput, now: Date): SeriesStep[] {
   const leaveByMs = computeLeaveBy(appointment).getTime();
   const nowMs = now.getTime();
+  const schedule = appointment.inPerson ? SCHEDULE : SCHEDULE.slice(0, 1);
 
-  const steps = SCHEDULE.map(({ step, minutesFromLeaveBy, tone }) => ({
+  const toStep = (step: StepNumber, tone: LadderTone, atMs: number): SeriesStep => ({
     step,
-    at: new Date(leaveByMs + minutesFromLeaveBy * MS_PER_MINUTE),
+    at: new Date(atMs),
     tone: capTone(tone, appointment.intensity),
-    minutesFromLeaveBy,
-  }));
+    minutesFromLeaveBy: (atMs - leaveByMs) / MS_PER_MINUTE,
+  });
 
-  if (!appointment.inPerson) {
-    const [first] = steps;
-    if (first.at.getTime() >= nowMs) return [first];
-    return nowMs < Date.parse(appointment.startsAt) ? [{ ...first, at: new Date(nowMs) }] : [];
+  const scheduled = schedule.map(({ step, minutesFromLeaveBy, tone }) => ({
+    step,
+    tone,
+    atMs: leaveByMs + minutesFromLeaveBy * MS_PER_MINUTE,
+  }));
+  const future = scheduled.filter(({ atMs }) => atMs >= nowMs);
+  const lastPassed = scheduled.filter(({ atMs }) => atMs < nowMs).pop();
+  const steps = future.map(({ step, tone, atMs }) => toStep(step, tone, atMs));
+
+  const stepAtNow = future.some(({ atMs }) => atMs === nowMs);
+  if (lastPassed && !stepAtNow && nowMs < Date.parse(appointment.startsAt)) {
+    return [toStep(lastPassed.step, lastPassed.tone, nowMs), ...steps];
   }
-  return steps.filter(({ at }) => at.getTime() >= nowMs);
+  return steps;
 }
 
 function capTone(tone: LadderTone, intensity: Intensity): LadderTone {

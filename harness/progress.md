@@ -61,3 +61,10 @@ Newest entry at the bottom. Each session appends one entry:
 - Next: F004 insult bank. Read the "Notes for later features" in exec-plans/completed/F003.md first.
 - Blockers/notes: PLAN.md intensity wording and the non-in-person pull-forward were orchestrator
   decisions. They're flagged for the user in the PR.
+
+## 2026-09-24 — F003 — follow-up (user-requested, PR #3)
+- Did: the user approved both PLAN.md rule changes. In-person events created late now fire the most recent
+  missed step at now, then the future steps (no pull from startsAt on, or when a step is exactly at now);
+  minutesFromLeaveBy is recomputed from `at` (exact, fractional OK; F004 formats it). 18 series tests.
+- Verified: verifier PASS on the original verify steps, both new requirements and edge cases (breaking the code on purpose).
+- Next: F004 insult bank.

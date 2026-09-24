@@ -50,8 +50,9 @@ export interface SeriesStep {
   at: Date;
   tone: LadderTone;
   /**
-   * Scheduled offset from leaveBy in minutes (−30, −10, 0, 3, 6, 10), for the practical cue.
-   * A non-in-person step pulled forward to `now` keeps −30.
+   * Live offset of `at` from leaveBy in minutes: `(at − leaveBy) / 60000`, exact and possibly
+   * fractional. Scheduled steps get −30, −10, 0, 3, 6, 10; a step pulled forward to `now` gets its
+   * real offset. F004 formats the practical cue ("leave in 4 min") from this; the domain never rounds.
    */
   minutesFromLeaveBy: number;
 }

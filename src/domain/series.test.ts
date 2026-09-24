@@ -81,10 +81,10 @@ describe('buildSeries', () => {
     }
   });
 
-  it('pulls a past non-in-person reminder forward to now while before startsAt', () => {
+  it('pulls a past non-in-person reminder forward to now with its real offset', () => {
     const now = new Date('2026-09-24T14:50:00Z'); // step 1 (14:00Z) past, start at 15:00Z
     expect(buildSeries({ ...base, inPerson: false }, now)).toEqual([
-      { step: 1, at: now, tone: 'polite', minutesFromLeaveBy: -30 },
+      { step: 1, at: now, tone: 'polite', minutesFromLeaveBy: 20 },
     ]);
   });
 
@@ -111,21 +111,54 @@ describe('buildSeries', () => {
     }
   });
 
-  it('skips in-person steps already in the past and keeps original step numbers', () => {
-    const now = new Date('2026-09-24T14:31:00Z'); // leaveBy + 1 min
+  it('pulls the most recent passed in-person step to now, then the future steps', () => {
+    const now = new Date('2026-09-24T14:34:00Z'); // leaveBy + 4 min, before startsAt
     const steps = buildSeries(base, now);
-    expect(steps.map((s) => s.step)).toEqual([4, 5, 6]);
-    expect(offsetsFromLeaveBy(steps)).toEqual([3, 6, 10]);
-    expect(steps.map((s) => s.minutesFromLeaveBy)).toEqual([3, 6, 10]);
+    expect(steps).toEqual([
+      { step: 4, at: now, tone: 'rude', minutesFromLeaveBy: 4 },
+      { step: 5, at: new Date('2026-09-24T14:36:00Z'), tone: 'savage', minutesFromLeaveBy: 6 },
+      { step: 6, at: new Date('2026-09-24T14:40:00Z'), tone: 'unhinged', minutesFromLeaveBy: 10 },
+    ]);
   });
 
-  it('keeps a step scheduled exactly at now', () => {
+  it('pulls step 1 with its real offset when now is between steps 1 and 2', () => {
+    const now = new Date('2026-09-24T14:05:30Z'); // leaveBy − 24.5 min
+    const steps = buildSeries(base, now);
+    expect(steps.map((s) => s.step)).toEqual([1, 2, 3, 4, 5, 6]);
+    expect(steps[0]).toEqual({ step: 1, at: now, tone: 'polite', minutesFromLeaveBy: -24.5 });
+    expect(steps.slice(1).map((s) => s.minutesFromLeaveBy)).toEqual([-10, 0, 3, 6, 10]);
+  });
+
+  it('skips earlier passed steps and pulls only step 6 when all are past before startsAt', () => {
+    const now = new Date('2026-09-24T14:41:00Z'); // every step past, start at 15:00Z
+    expect(buildSeries(base, now)).toEqual([
+      { step: 6, at: now, tone: 'unhinged', minutesFromLeaveBy: 11 },
+    ]);
+  });
+
+  it('does not pull once startsAt is reached', () => {
+    // startsAt 15:00Z, leaveBy 14:55Z → step 5 at 15:01Z, step 6 at 15:05Z.
+    const late = { ...base, travelMinutes: 0, bufferMinutes: 5 };
+    expect(buildSeries(late, new Date('2026-09-24T15:02:00Z'))).toEqual([
+      { step: 6, at: new Date('2026-09-24T15:05:00Z'), tone: 'unhinged', minutesFromLeaveBy: 10 },
+    ]);
+    expect(buildSeries(late, new Date('2026-09-24T15:06:00Z'))).toEqual([]);
+    expect(buildSeries(base, new Date('2026-09-24T15:00:00Z'))).toEqual([]);
+  });
+
+  it('does not pull or duplicate when a step is exactly at now', () => {
     const steps = buildSeries(base, new Date(LEAVE_BY_MS));
     expect(steps.map((s) => s.step)).toEqual([3, 4, 5, 6]);
+    expect(steps.map((s) => s.minutesFromLeaveBy)).toEqual([0, 3, 6, 10]);
   });
 
-  it('returns [] when every in-person step is in the past', () => {
-    expect(buildSeries(base, new Date('2026-09-24T14:41:00Z'))).toEqual([]);
+  it('caps the tone of a pulled step by intensity', () => {
+    const now = new Date('2026-09-24T14:37:00Z'); // leaveBy + 7 → pulls step 5
+    const steps = buildSeries({ ...base, intensity: 'mild' }, now);
+    expect(steps.map((s) => [s.step, s.tone])).toEqual([
+      [5, 'sarcastic'],
+      [6, 'sarcastic'],
+    ]);
   });
 
   it('propagates RangeError from computeLeaveBy on bad input', () => {

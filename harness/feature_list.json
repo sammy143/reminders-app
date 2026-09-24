@@ -51,7 +51,7 @@
         "bash scripts/check.sh passes"
       ],
       "passes": true,
-      "notes": "Intensity caps tone (mild<=sarcastic, spicy<=savage). Steps carry minutesFromLeaveBy. Non-in-person missed step 1 fires at now until startsAt. See exec-plans/completed/F003.md."
+      "notes": "Intensity caps tone (mild<=sarcastic, spicy<=savage). Created late (before startsAt): the most recent missed step fires at now, then future steps (in-person and not). minutesFromLeaveBy is recomputed from at (exact). See exec-plans/completed/F003.md."
     },
     {
       "id": "F004",
