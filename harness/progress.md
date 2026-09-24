@@ -42,3 +42,12 @@ Newest entry at the bottom. Each session appends one entry:
 - Next: F002.
 - Blockers/notes: sandbox blocks api.expo.dev, so use `EXPO_OFFLINE=1` for `npx expo install`/`start`.
   Fonts are not loaded yet and the icons are still the template's (see docs/tech-debt.md). Only tested on web, not in Expo Go.
+
+## 2026-09-24 — F002 — PASS
+- Did: src/types (Appointment, Intensity, Tone, status/source types); src/domain/leaveBy.ts
+  `computeLeaveBy` (epoch-ms subtraction; RangeError on bad input) + 15 tests.
+- Verified: verifier PASS on all 3 steps. The reviewer found nothing blocking; fix round 1 added the offset requirement on `startsAt`,
+  Tone in PLAN Core model, the tone→token note in DESIGN.md and a tech-debt line for the missing boundary parser.
+- Next: F003.
+- Blockers/notes: 'savage' is both an Intensity and a Tone value, so watch for mix-ups in buildSeries.
+  The reviewer suggested checks for later: pin a non-UTC TZ in Jest; forbid Date.now()/new Date() in domain/.
