@@ -72,6 +72,14 @@ export function buildSeries(appointment: SeriesInput, now: Date): SeriesStep[] {
   return steps;
 }
 
+/**
+ * Capped tone of a step in the full schedule, whether or not that step is in a given series.
+ * Line selection (F004) uses it to count earlier steps that share a bank cell.
+ */
+export function scheduledTone(step: StepNumber, intensity: Intensity): LadderTone {
+  return capTone(SCHEDULE[step - 1].tone, intensity);
+}
+
 function capTone(tone: LadderTone, intensity: Intensity): LadderTone {
   const cap = TONE_CAP[intensity];
   return LADDER.indexOf(tone) > LADDER.indexOf(cap) ? cap : tone;

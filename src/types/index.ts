@@ -40,7 +40,7 @@ export type LadderTone = Exclude<Tone, 'supportive'>;
 export type StepNumber = 1 | 2 | 3 | 4 | 5 | 6;
 
 /**
- * One scheduled notification of a series. F004 adds `text` from the insult bank.
+ * One scheduled notification of a series, before a line is attached (see `SeriesMessage`).
  *
  * Derived, never persisted: rebuild it from the appointment + `now` with `buildSeries`.
  * `step` keeps its schedule position even when earlier steps were skipped as past.
@@ -56,3 +56,9 @@ export interface SeriesStep {
    */
   minutesFromLeaveBy: number;
 }
+
+/**
+ * A series step with its line from the bank (F004): `withLines` in `src/domain/lines/select.ts`.
+ * `text` always contains the practical cue ("leave in 4 min"). Derived, never persisted.
+ */
+export type SeriesMessage = SeriesStep & { text: string };

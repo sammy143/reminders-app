@@ -1,6 +1,6 @@
 import type { LadderTone } from '@/types';
 
-import { buildSeries, type SeriesInput } from './series';
+import { buildSeries, scheduledTone, type SeriesInput } from './series';
 
 // startsAt 15:00Z, travel 25 + buffer 5 → leaveBy 14:30Z.
 const base: SeriesInput = {
@@ -165,5 +165,27 @@ describe('buildSeries', () => {
     expect(() => buildSeries({ ...base, startsAt: '2026-09-24T15:00:00' }, EARLY)).toThrow(
       RangeError,
     );
+  });
+});
+
+describe('scheduledTone', () => {
+  it('returns the capped tone of each scheduled step', () => {
+    const steps = [1, 2, 3, 4, 5, 6] as const;
+    expect(steps.map((n) => scheduledTone(n, 'savage'))).toEqual(LADDER);
+    expect(steps.map((n) => scheduledTone(n, 'spicy'))).toEqual([...LADDER.slice(0, 5), 'savage']);
+    expect(steps.map((n) => scheduledTone(n, 'mild'))).toEqual([
+      ...LADDER.slice(0, 3),
+      'sarcastic',
+      'sarcastic',
+      'sarcastic',
+    ]);
+  });
+
+  it('agrees with buildSeries', () => {
+    for (const intensity of ['mild', 'spicy', 'savage'] as const) {
+      for (const s of buildSeries({ ...base, intensity }, EARLY)) {
+        expect(scheduledTone(s.step, intensity)).toBe(s.tone);
+      }
+    }
   });
 });

@@ -16,7 +16,9 @@ until you actually leave the house. Hobby project; also a testbed for Claude clo
 5. **User control:** intensity `mild | spicy | savage`; "I'm genuinely stuck" switches the
    remaining series to supportive tone; "mute today".
 6. **Cap:** max 6 notifications per event; every line in a series is unique.
-7. **Every message carries a practical cue** ("leave in 4 min").
+7. **Every message carries a practical cue**: in-person events get a leave cue from leaveBy
+   ("leave in 4 min", "leave now", "3 min late"); other events (online, phone) get a start cue
+   from startsAt ("starts in 20 min", "starting now").
 
 ## Stack
 
@@ -77,7 +79,8 @@ interface Appointment {
 
 Intensity caps the tone per step: mild ≤ sarcastic, spicy ≤ savage, savage uncapped.
 Not in-person → only step 1. If that time has already passed but the event hasn't started, it
-fires immediately; once the event has started, nothing is sent.
+fires immediately; once the event has started, nothing is sent. Its cue counts down to startsAt
+("starts in 20 min"), not to leaveBy.
 In-person events created late (some steps already passed, event not started) fire the most
 recent missed step immediately, then the rest; earlier missed steps are skipped.
 
@@ -96,8 +99,8 @@ Scope only. **Status lives in `harness/feature_list.json`** (F001–F013) — do
 ### v1 — core loop (Expo Go, one session)
 - Scaffold Expo + TS + Expo Router; ESLint/Prettier; Jest.
 - Appointment CRUD screens (list, add/edit) with travel minutes, in-person toggle, intensity.
-- Pure scheduling module: `computeLeaveBy`, `buildSeries(appointment) → [{at, tone, text}]`
-      — unit tested.
+- Pure scheduling module: `computeLeaveBy`, `buildSeries(appointment, now) → [{step, at, tone,
+  minutesFromLeaveBy}]`, then `withLines(steps, appt)` adds `text` from the bank — unit tested.
 - Hardcoded insult bank per tone × intensity, character voice.
 - Schedule/cancel series with expo-notifications; respect the 64 cap (next 2 events).
 - "I've left" (notification action + in-app) and "I'm genuinely stuck".

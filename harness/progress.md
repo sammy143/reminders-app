@@ -68,3 +68,21 @@ Newest entry at the bottom. Each session appends one entry:
   minutesFromLeaveBy is recomputed from `at` (exact, fractional OK; F004 formats it). 18 series tests.
 - Verified: verifier PASS on the original verify steps, both new requirements and edge cases (breaking the code on purpose).
 - Next: F004 insult bank.
+
+## 2026-09-24 — F004 — PASS
+- Did: src/domain/lines/{bank,cue,select}.ts. 126 lines in Nag's voice (7 tones x 3 intensities,
+  6 each); formatCue ("leave in N min" / "leave now" / "N min late"); withLines(series, appt)
+  picks deterministically per (id, step) and keeps lines unique within a series. scheduledTone added to series.ts.
+- Verified: verifier PASS after closing a test gap (uniqueness now ignores the cue; the +k mutant is caught).
+  The reviewer confirmed the content rule twice. Two fix rounds reworded ~60 lines (cue clashes, escalation
+  promises, near-duplicates, body/mobility words, time-only polite lines) and added bank tests for these.
+- Next: F005.
+- Blockers/notes: open product question: should events that aren't in person say "leave in N min", or
+  "starts in N min"? F007 must compute k for supportive steps itself (see F004 plan).
+
+## 2026-09-24 — F004 — follow-up (user decision, PR #4)
+- Did: events that aren't in person get a start cue ("starts in N min" / "starting now") computed from
+  startsAt via formatStartCue; withLines takes inPerson and startsAt. Polite lines contain no leave/travel words
+  (test-enforced); 6 polite lines reworded. PLAN rule 7 and DESIGN voice updated.
+- Verified: verifier PASS (12 mutants caught); check.sh 109 tests.
+- Next: F005.
