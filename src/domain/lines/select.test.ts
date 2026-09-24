@@ -2,7 +2,7 @@ import type { Intensity, SeriesStep } from '@/types';
 
 import { buildSeries, type SeriesInput } from '../series';
 import { BANK } from './bank';
-import { fillCue, stableHash, withLines } from './select';
+import { fillCue, stableHash, withLines, type LineInput } from './select';
 
 // startsAt 15:00Z, travel 25 + buffer 5 → leaveBy 14:30Z; steps at 14:00, 14:20, 14:30, 14:33, 14:36, 14:40.
 const base: SeriesInput = {
@@ -14,7 +14,9 @@ const base: SeriesInput = {
 };
 const EARLY = new Date('2026-09-24T12:00:00Z');
 const INTENSITIES: Intensity[] = ['mild', 'spicy', 'savage'];
-const CUE = /(leave in \d+ min|leave now|\d+ min late)\.$/i;
+const CUE = /(leave in \d+ min|leave now|\d+ min late|starts in \d+ min|starting now)\.$/i;
+const LEAVE_CUE = /(leave in \d+ min|leave now|\d+ min late)\.$/i;
+const START_CUE = /(starts in \d+ min|starting now)\.$/i;
 // Every minute from well before step 1 to after startsAt, plus some off-minute instants.
 const NOWS = Array.from(
   { length: 70 },
@@ -22,13 +24,19 @@ const NOWS = Array.from(
 ).concat([new Date('2026-09-24T14:05:30Z'), new Date('2026-09-24T14:34:59Z')]);
 const IDS = ['a', 'appt-1', 'appt-2', '5f1c9e2a-7b3d-4e8f-9a01-23c4d5e6f789', ''];
 
+const appt = (input: SeriesInput, id: string): LineInput => ({
+  id,
+  intensity: input.intensity,
+  inPerson: input.inPerson,
+  startsAt: input.startsAt,
+});
 const lines = (input: SeriesInput, id: string, now: Date) =>
-  withLines(buildSeries(input, now), { id, intensity: input.intensity });
+  withLines(buildSeries(input, now), appt(input, id));
 
 describe('withLines', () => {
   it('adds text to every step and keeps the step fields', () => {
     const steps = buildSeries(base, EARLY);
-    const messages = withLines(steps, { id: 'appt-1', intensity: 'savage' });
+    const messages = withLines(steps, appt(base, 'appt-1'));
     expect(messages).toHaveLength(6);
     messages.forEach((m, i) => {
       expect(m).toEqual({ ...steps[i], text: expect.any(String) });
@@ -67,7 +75,7 @@ describe('withLines', () => {
         for (const now of NOWS) {
           const messages = lines({ ...base, intensity, inPerson }, id, now);
           const texts = messages.map((m) => m.text);
-          texts.forEach((t) => expect(t).toMatch(CUE));
+          texts.forEach((t) => expect(t).toMatch(inPerson ? LEAVE_CUE : START_CUE));
           // Compare with the cue stripped: cues differ per step, so full texts could hide a repeat.
           const lineOnly = texts.map((t) => t.replace(CUE, ''));
           expect(new Set(lineOnly).size).toBe(lineOnly.length);
@@ -75,6 +83,35 @@ describe('withLines', () => {
       }
     },
   );
+
+  it('gives an event that is not in person a start cue from startsAt, not a leave cue', () => {
+    const online = { ...base, inPerson: false };
+    // Step 1 at 14:00Z; startsAt 15:00Z.
+    const [first] = lines(online, 'appt-1', EARLY);
+    expect(first.step).toBe(1);
+    expect(first.text).toMatch(/starts in 60 min\.$/i);
+    // Step 1 pulled to now = 14:50Z.
+    const [pulled] = lines(online, 'appt-1', new Date('2026-09-24T14:50:00Z'));
+    expect(pulled.text).toMatch(/starts in 10 min\.$/i);
+    expect(pulled.text.replace(CUE, '')).toBe(first.text.replace(CUE, ''));
+    // Rounds to "starting now" in the last half minute.
+    const [last] = lines(online, 'appt-1', new Date('2026-09-24T14:59:40Z'));
+    expect(last.text).toMatch(/starting now\.$/i);
+  });
+
+  it('keeps leave cues for in-person events', () => {
+    for (const m of lines(base, 'appt-1', EARLY)) {
+      expect(m.text).toMatch(LEAVE_CUE);
+      expect(m.text).not.toMatch(START_CUE);
+    }
+  });
+
+  it('throws RangeError when an event that is not in person has an unparseable startsAt', () => {
+    const steps = buildSeries({ ...base, inPerson: false }, EARLY);
+    expect(() =>
+      withLines(steps, { ...appt(base, 'x'), inPerson: false, startsAt: 'not a date' }),
+    ).toThrow(RangeError);
+  });
 
   it('keeps the same text for a step after earlier steps are dropped', () => {
     const full = lines(base, 'appt-1', EARLY);
@@ -95,9 +132,10 @@ describe('withLines', () => {
 
   it('does not depend on array position', () => {
     const steps = buildSeries({ ...base, intensity: 'mild' }, EARLY);
-    const full = withLines(steps, { id: 'appt-1', intensity: 'mild' });
+    const mild = appt({ ...base, intensity: 'mild' }, 'appt-1');
+    const full = withLines(steps, mild);
     const alone: SeriesStep[] = [steps[4]];
-    expect(withLines(alone, { id: 'appt-1', intensity: 'mild' })[0].text).toBe(full[4].text);
+    expect(withLines(alone, mild)[0].text).toBe(full[4].text);
   });
 
   it('is deterministic per id and varies across ids', () => {
@@ -109,7 +147,7 @@ describe('withLines', () => {
   });
 
   it('returns [] for an empty series', () => {
-    expect(withLines([], { id: 'x', intensity: 'spicy' })).toEqual([]);
+    expect(withLines([], appt({ ...base, intensity: 'spicy' }, 'x'))).toEqual([]);
   });
 });
 

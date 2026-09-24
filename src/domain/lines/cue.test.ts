@@ -1,4 +1,4 @@
-import { formatCue } from './cue';
+import { formatCue, formatStartCue } from './cue';
 
 describe('formatCue', () => {
   it.each([
@@ -15,5 +15,20 @@ describe('formatCue', () => {
     [3.2, '3 min late'],
   ])('%p min from leaveBy → "%s"', (minutes, cue) => {
     expect(formatCue(minutes)).toBe(cue);
+  });
+});
+
+describe('formatStartCue', () => {
+  it.each([
+    [60, 'starts in 60 min'],
+    [30, 'starts in 30 min'],
+    [24.5, 'starts in 25 min'],
+    [1, 'starts in 1 min'],
+    [0.5, 'starts in 1 min'],
+    [0.4, 'starting now'],
+    [0, 'starting now'],
+    [-2, 'starting now'],
+  ])('%p min to start → "%s"', (minutes, cue) => {
+    expect(formatStartCue(minutes)).toBe(cue);
   });
 });

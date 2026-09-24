@@ -64,7 +64,7 @@
         "bash scripts/check.sh passes"
       ],
       "passes": true,
-      "notes": "126 lines (6 per tone x intensity). withLines picks deterministically per (id, step). Polite lines are time-only; bank tests guard cue repetition, body words, shared phrases. See exec-plans/completed/F004.md."
+      "notes": "126 lines (6 per tone x intensity). withLines picks deterministically per (id, step). Not-in-person events get 'starts in N min'/'starting now' from startsAt. Polite lines are time-only; bank tests guard cue repetition, body words, shared phrases. See exec-plans/completed/F004.md."
     },
     {
       "id": "F005",

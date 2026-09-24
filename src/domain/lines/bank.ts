@@ -9,7 +9,9 @@ import type { Intensity, Tone } from '@/types';
  * - mock the lateness and the situation (clock, bus, traffic, door, keys, the excuse),
  *   never identity, looks, intelligence, ability or any protected trait; no strong profanity.
  * - the cue may read "leave in 4 min", "leave now" or "11 min late", so every template must read
- *   well with any of them. After `.`, `!` or `?` the cue is capitalised; after `:` it is not.
+ *   well with any of them. Polite lines also get "starts in 20 min" / "starting now" (events that
+ *   aren't in person; online or phone), so they say nothing about leaving, travel or the door.
+ *   After `.`, `!` or `?` the cue is capitalised; after `:` it is not.
  *
  * Cells F003 can't reach today (mild × rude/savage/unhinged, spicy × unhinged, all supportive)
  * are filled anyway for F007's snooze and supportive transforms.
@@ -21,14 +23,14 @@ export const BANK: LineBank = {
     mild: [
       'Gentle heads-up: {cue}.',
       'Friendly reminder from the calendar: {cue}.',
-      "Just so it's on your radar: {cue}.",
+      'A quick word on timing: {cue}.',
       'A small note from the clock: {cue}.',
-      'For your planning purposes: {cue}.',
+      'Status update from your calendar: {cue}.',
       'The clock would like a word: {cue}.',
     ],
     spicy: [
       'Hello. The appointment still exists: {cue}.',
-      "Polite reminder. Here's the math: {cue}.",
+      'Polite reminder regarding timing: {cue}.',
       'A reminder, delivered with manners: {cue}.',
       'Noting the time, as agreed: {cue}.',
       'Your calendar asked me to mention it: {cue}.',
@@ -36,7 +38,7 @@ export const BANK: LineBank = {
     ],
     savage: [
       'Reminder, served politely: {cue}.',
-      'The calendar sends its regards. {cue}.',
+      'The calendar sends its regards: {cue}.',
       'Politely, regarding the schedule: {cue}.',
       'A calm note about your calendar: {cue}.',
       'Checking in on the schedule: {cue}.',
@@ -47,7 +49,7 @@ export const BANK: LineBank = {
     mild: [
       'Time to get moving. {cue}.',
       'Shoes on, please. {cue}.',
-      'Start heading for the door. {cue}.',
+      'Head for the door. {cue}.',
       "Wrap up what you're doing. {cue}.",
       'Keys, phone, wallet. {cue}.',
       'This is the one to act on. {cue}.',
@@ -149,7 +151,7 @@ export const BANK: LineBank = {
   },
   unhinged: {
     mild: [
-      "I've started narrating this to the houseplants. {cue}.",
+      "I'm narrating this to the houseplants. {cue}.",
       'The kettle and I are worried. {cue}.',
       "I have alerted the pigeons. They're concerned. {cue}.",
       'The door is doing breathing exercises. {cue}.',

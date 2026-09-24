@@ -79,3 +79,10 @@ Newest entry at the bottom. Each session appends one entry:
 - Next: F005.
 - Blockers/notes: open product question: should events that aren't in person say "leave in N min", or
   "starts in N min"? F007 must compute k for supportive steps itself (see F004 plan).
+
+## 2026-09-24 — F004 — follow-up (user decision, PR #4)
+- Did: events that aren't in person get a start cue ("starts in N min" / "starting now") computed from
+  startsAt via formatStartCue; withLines takes inPerson and startsAt. Polite lines contain no leave/travel words
+  (test-enforced); 6 polite lines reworded. PLAN rule 7 and DESIGN voice updated.
+- Verified: verifier PASS (12 mutants caught); check.sh 109 tests.
+- Next: F005.

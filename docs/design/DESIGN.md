@@ -68,4 +68,6 @@ polite (mild), sarcastic (spicy), savage (savage).
 
 ## Voice (Nag)
 Deadpan, dry, blunt. Short sentences. Targets the lateness and the situation, never
-identity, looks, or ability. Every line includes a practical cue ("leave in 4 min").
+identity, looks, or ability. Every line includes a practical cue: "leave in 4 min" for in-person
+events, "starts in 20 min" / "starting now" for online or phone events (their one polite reminder
+says nothing about leaving or travel).

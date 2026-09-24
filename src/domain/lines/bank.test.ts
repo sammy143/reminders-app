@@ -7,9 +7,10 @@ const TONES: Tone[] = ['polite', 'firm', 'sarcastic', 'rude', 'savage', 'unhinge
 const INTENSITIES: Intensity[] = ['mild', 'spicy', 'savage'];
 const LADDER: Tone[] = ['polite', 'firm', 'sarcastic', 'rude', 'savage', 'unhinged'];
 const all = Object.values(BANK).flatMap((cells) => Object.values(cells).flat());
-const CUE_FORMS = ['leave in 5 min', 'leave now', '5 min late'];
-// Words any cue form uses. A template that uses them too reads as "Go now. Leave now."
-const CUE_WORDS = /\bleav\w*|\bnow\b|\blate\w*|\bmin(ute)?s?\b/gi;
+const CUE_FORMS = ['leave in 5 min', 'leave now', '5 min late', 'starts in 5 min', 'starting now'];
+// Words any cue form uses (leave and start families). A template that uses them too reads as
+// "Go now. Leave now."
+const CUE_WORDS = /\bleav\w*|\bstart\w*|\bnow\b|\blate\w*|\bmin(ute)?s?\b/gi;
 const countCueWords = (text: string) => text.match(CUE_WORDS)?.length ?? 0;
 // Sequence or timing words that break when a polite/firm line is the only (or a pulled) reminder.
 const SEQUENCE_WORDS =
@@ -18,6 +19,9 @@ const SEQUENCE_WORDS =
 const BODY_WORDS = /\b(walk\w*|feet|foot|stand\w*|run\w*)\b/i;
 // Polite is all a video or phone call gets, so polite lines talk about time, not physically leaving.
 const LEAVING_OBJECTS = /\b(keys?|doors?|shoes?|coats?|wallets?|bus)\b/i;
+// Polite lines also carry "starts in N min" for online/phone events: no leaving or travel words.
+const LEAVING_WORDS =
+  /\b(leav\w*|head(ing)?|out|go(ing|ne)?|trip\w*|commut\w*|travel\w*|driv\w*|arriv\w*|get(ting)? there|exit\w*)\b/i;
 
 /** Lowercase, `{cue}` and punctuation stripped, split into words. */
 const words = (template: string) =>
@@ -113,5 +117,6 @@ describe('BANK', () => {
   it('keeps polite lines about time, not about physically leaving', () => {
     const polite = INTENSITIES.flatMap((intensity) => BANK.polite[intensity]);
     expect(polite.filter((line) => LEAVING_OBJECTS.test(line))).toEqual([]);
+    expect(polite.filter((line) => LEAVING_WORDS.test(line))).toEqual([]);
   });
 });
