@@ -75,8 +75,11 @@ interface Appointment {
 | 5 | +6 min | savage |
 | 6 | +10 min | final, unhinged |
 
-Intensity shifts the tone per step (mild tops out at "firm/sarcastic").
-Not in-person → only step 1.
+Intensity caps the tone per step: mild ≤ sarcastic, spicy ≤ savage, savage uncapped.
+Not in-person → only step 1. If that time has already passed but the event hasn't started, it
+fires immediately; once the event has started, nothing is sent.
+In-person events created late (some steps already passed, event not started) fire the most
+recent missed step immediately, then the rest; earlier missed steps are skipped.
 
 ## Platform constraints (design around these)
 

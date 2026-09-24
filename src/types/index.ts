@@ -32,3 +32,27 @@ export interface Appointment {
   source: AppointmentSource;
   calendarEventId?: string;
 }
+
+/** Tones of the escalation ladder (steps 1–6); excludes `supportive`. */
+export type LadderTone = Exclude<Tone, 'supportive'>;
+
+/** Position in the escalation schedule (docs/PLAN.md "Escalation schedule"). */
+export type StepNumber = 1 | 2 | 3 | 4 | 5 | 6;
+
+/**
+ * One scheduled notification of a series. F004 adds `text` from the insult bank.
+ *
+ * Derived, never persisted: rebuild it from the appointment + `now` with `buildSeries`.
+ * `step` keeps its schedule position even when earlier steps were skipped as past.
+ */
+export interface SeriesStep {
+  step: StepNumber;
+  at: Date;
+  tone: LadderTone;
+  /**
+   * Live offset of `at` from leaveBy in minutes: `(at − leaveBy) / 60000`, exact and possibly
+   * fractional. Scheduled steps get −30, −10, 0, 3, 6, 10; a step pulled forward to `now` gets its
+   * real offset. F004 formats the practical cue ("leave in 4 min") from this; the domain never rounds.
+   */
+  minutesFromLeaveBy: number;
+}
