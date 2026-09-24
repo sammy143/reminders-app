@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Settings - Nag</title>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Google Fonts: Public Sans & Inter -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Public+Sans:wght@600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS v3 -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {},
+          borderRadius: {
+            "DEFAULT": "0.5rem",
+            "lg": "1rem",
+            "xl": "1.5rem",
+            "full": "9999px"
+          },
+          spacing: {},
+          fontFamily: {
+            headline: ["Public Sans", "sans-serif"],
+            display: ["Public Sans", "sans-serif"],
+            body: ["Inter", "sans-serif"],
+            label: ["Inter", "sans-serif"]
+          },
+          fontSize: {}
+        },
+      }
+    }
+  </script>
+<style>
+    body {
+      background-color: #F7F7F5;
+      color: #1C1C1E;
+      font-family: 'Inter', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      line-height: 1;
+      display: inline-block;
+      vertical-align: middle;
+    }
+    /* Hide scrollbars smoothly */
+    ::-webkit-scrollbar {
+      display: none;
+    }
+    * {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-[#F7F7F5] text-[#1C1C1E] flex flex-col justify-between items-center selection:bg-orange-100 selection:text-orange-900 pb-28">
+<!-- Top Mobile Frame Wrapper -->
+<div class="w-full max-w-md mx-auto flex flex-col px-5 pt-3">
+<!-- Status Bar (iOS simulated) -->
+<div class="w-full flex justify-between items-center text-xs font-semibold tracking-tight text-[#1C1C1E] py-1 mb-2">
+<span>9:41</span>
+<div class="flex items-center space-x-1.5 text-[15px]">
+<span class="material-symbols-outlined text-[16px] leading-none" data-icon="signal_cellular_alt">signal_cellular_alt</span>
+<span class="material-symbols-outlined text-[16px] leading-none" data-icon="wifi">wifi</span>
+<span class="material-symbols-outlined text-[18px] leading-none" data-icon="battery_full" style="font-variation-settings: 'FILL' 1;">battery_full</span>
+</div>
+</div>
+<!-- Header Title -->
+<div class="w-full flex items-center justify-between pt-2 pb-4">
+<h1 class="font-headline text-3xl font-extrabold tracking-tight text-[#1C1C1E]">Settings</h1>
+<span class="px-2.5 py-1 text-[11px] font-semibold tracking-wide bg-stone-200/60 text-[#6B6B70] rounded-full uppercase">v1.2</span>
+</div>
+<!-- Profile / Tormentor Hero Banner Card -->
+<div class="w-full bg-white rounded-2xl border border-[#E5E5E2] p-4 mb-5 flex items-center gap-4">
+<div class="w-14 h-14 rounded-2xl bg-[#F7F7F5] border border-[#E5E5E2] flex items-center justify-center overflow-hidden flex-shrink-0 relative group">
+<img alt="Nag Mascot Avatar" class="w-12 h-12 object-contain transition-transform group-hover:scale-105 duration-200" src="https://lh3.googleusercontent.com/aida/AEtjO1UetqP5J56Au3s43Dp3areBR_qBZew2v_Iw238pGiqOw5Ri4TBzKSgnw0Su6keJj5z7HyuD7D8s0qUxIVebOU7OtiiF62__uTJxp-tDi-_TjfZJEEFva3TOkTQxYklKNv3u-qwjUf7VCl3d92_hnp-qOkof7_t4UDSQzPVMB4oo7M-RL25IIUWOqHrySt39oGvuepJPBmxxvIkK8uL_AVfowSWxvDG-rp7LdZSTqFpK3dl2FsW-7NVo"/>
+</div>
+<div class="flex flex-col flex-1">
+<div class="flex items-center gap-2">
+<h2 class="font-headline text-base font-bold tracking-tight text-[#1C1C1E]">Configure your tormentor.</h2>
+</div>
+<p class="text-xs text-[#6B6B70] font-normal leading-relaxed mt-0.5">Tough love, automated schedule discipline.</p>
+</div>
+</div>
+<!-- MAIN SETTINGS SECTIONS -->
+<div class="space-y-4 w-full">
+<!-- SECTION 1: PERSONALITY & DEFAULTS -->
+<section class="bg-white rounded-2xl border border-[#E5E5E2] p-4">
+<div class="flex items-center justify-between mb-3">
+<span class="text-[11px] font-semibold tracking-wider text-[#6B6B70] uppercase">DEFAULT MEANNESS</span>
+<span class="text-[11px] text-[#F97316] font-medium flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-[#F97316] animate-pulse"></span>
+            Current: Spicy
+          </span>
+</div>
+<!-- 3 Pill Chips / Selectors -->
+<div class="grid grid-cols-3 gap-2.5 mb-4">
+<!-- Mild -->
+<button class="flex flex-col items-center justify-center p-2.5 rounded-xl border border-[#E5E5E2] bg-[#FAFAF8] text-center hover:bg-stone-50 active:scale-95 transition-all text-left" type="button">
+<div class="flex items-center gap-1.5 mb-1">
+<span class="w-2 h-2 rounded-full bg-[#14B8A6]"></span>
+<span class="text-xs font-semibold text-[#1C1C1E]">Mild</span>
+</div>
+<span class="text-[10px] text-[#6B6B70] leading-tight">Polite nudge</span>
+</button>
+<!-- Spicy (Selected) -->
+<button class="flex flex-col items-center justify-center p-2.5 rounded-xl border-2 border-[#F97316] bg-orange-50/60 text-center active:scale-95 transition-all relative" type="button">
+<div class="flex items-center gap-1.5 mb-1">
+<span class="w-2 h-2 rounded-full bg-[#F97316]"></span>
+<span class="text-xs font-bold text-[#F97316]">Spicy</span>
+</div>
+<span class="text-[10px] text-stone-600 font-medium leading-tight">Sarcastic bite</span>
+</button>
+<!-- Savage -->
+<button class="flex flex-col items-center justify-center p-2.5 rounded-xl border border-[#E5E5E2] bg-[#FAFAF8] text-center hover:bg-stone-50 active:scale-95 transition-all" type="button">
+<div class="flex items-center gap-1.5 mb-1">
+<span class="w-2 h-2 rounded-full bg-[#EF4444]"></span>
+<span class="text-xs font-semibold text-[#1C1C1E]">Savage</span>
+</div>
+<span class="text-[10px] text-[#6B6B70] leading-tight">Rude brutality</span>
+</button>
+</div>
+<div class="h-px bg-stone-100 my-3"></div>
+<!-- Default Buffer Row -->
+<div class="flex items-center justify-between pt-1">
+<div class="flex flex-col pr-2">
+<span class="text-xs font-medium text-[#1C1C1E]">Default buffer</span>
+<span class="text-[11px] text-[#6B6B70]">Arrival countdown margin</span>
+</div>
+<div class="flex items-center bg-[#F7F7F5] border border-[#E5E5E2] rounded-xl p-1 gap-2.5">
+<button class="w-7 h-7 flex items-center justify-center rounded-lg bg-white border border-[#E5E5E2] text-sm font-semibold active:scale-90 transition-transform text-[#1C1C1E] shadow-none">
+              −
+            </button>
+<span class="font-headline text-xs font-bold text-[#1C1C1E] w-12 text-center" id="buffer-val">5 min</span>
+<button class="w-7 h-7 flex items-center justify-center rounded-lg bg-white border border-[#E5E5E2] text-sm font-semibold active:scale-90 transition-transform text-[#1C1C1E] shadow-none">
+              +
+            </button>
+</div>
+</div>
+</section>
+<!-- SECTION 2: RULES & BOUNDARIES -->
+<section class="bg-white rounded-2xl border border-[#E5E5E2] divide-y divide-stone-100">
+<!-- Mute Nag for today -->
+<div class="p-4 flex items-center justify-between gap-4">
+<div class="flex flex-col">
+<span class="text-xs font-semibold text-[#1C1C1E]">Mute Nag for today</span>
+<span class="text-[11px] text-[#6B6B70] mt-0.5">Nag will sulk until midnight</span>
+</div>
+<!-- Toggle switch (OFF) -->
+<label class="relative inline-flex items-center cursor-pointer flex-shrink-0">
+<input class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-stone-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1C1C1E]"></div>
+</label>
+</div>
+<!-- Supportive mode when I say I'm stuck -->
+<div class="p-4 flex items-center justify-between gap-4">
+<div class="flex flex-col">
+<div class="flex items-center gap-1.5">
+<span class="text-xs font-semibold text-[#1C1C1E]">Supportive mode when I say I'm stuck</span>
+</div>
+<span class="text-[11px] text-[#6B6B70] mt-0.5">Drops the sarcasm and gives constructive exit steps</span>
+</div>
+<!-- Toggle switch (ON with Indigo accent) -->
+<label class="relative inline-flex items-center cursor-pointer flex-shrink-0">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-stone-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-indigo-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#6366F1]"></div>
+</label>
+</div>
+</section>
+<!-- SECTION 3: DATA & INTEGRATIONS -->
+<section class="bg-white rounded-2xl border border-[#E5E5E2] divide-y divide-stone-100">
+<!-- Calendars row -->
+<button class="w-full p-4 flex items-center justify-between text-left hover:bg-stone-50/50 active:bg-stone-100/50 transition-colors" type="button">
+<div class="flex flex-col">
+<span class="text-xs font-semibold text-[#1C1C1E]">Import from device calendar</span>
+<span class="text-[11px] text-[#6B6B70] mt-0.5">Sync upcoming calendar appointments automatically</span>
+</div>
+<div class="flex items-center gap-1.5 flex-shrink-0 ml-2">
+<span class="px-2 py-0.5 bg-stone-100 text-[#6B6B70] text-[10px] font-medium rounded-full border border-stone-200">Coming soon</span>
+<span class="material-symbols-outlined text-[#6B6B70] text-lg leading-none" data-icon="chevron_right">chevron_right</span>
+</div>
+</button>
+<!-- Home Location row -->
+<button class="w-full p-4 flex items-center justify-between text-left hover:bg-stone-50/50 active:bg-stone-100/50 transition-colors" type="button">
+<div class="flex flex-col">
+<span class="text-xs font-semibold text-[#1C1C1E]">Set home location</span>
+<span class="text-[11px] text-[#6B6B70] mt-0.5">Lets Nag know when you've actually left</span>
+</div>
+<div class="flex items-center gap-1 flex-shrink-0 ml-2">
+<span class="text-xs text-[#1C1C1E] font-medium">142 Oak St.</span>
+<span class="material-symbols-outlined text-[#6B6B70] text-lg leading-none" data-icon="chevron_right">chevron_right</span>
+</div>
+</button>
+</section>
+<!-- SECTION 4: NOTIFICATIONS & EMERGENCY ESCALATION -->
+<section class="bg-white rounded-2xl border border-[#E5E5E2] p-4">
+<button class="w-full flex items-center justify-between text-left active:opacity-75 transition-opacity" type="button">
+<div class="flex flex-col">
+<span class="text-xs font-semibold text-[#1C1C1E]">Emergency escalation</span>
+<span class="text-[11px] text-[#6B6B70] mt-0.5">Full screen override &amp; piercing tone escalation</span>
+</div>
+<div class="flex items-center gap-1 flex-shrink-0 ml-2">
+<span class="px-2 py-0.5 bg-red-50 text-[#B91C1C] border border-red-200 text-[10px] font-semibold rounded-full">Step 6 savage trigger</span>
+<span class="material-symbols-outlined text-[#6B6B70] text-lg leading-none" data-icon="chevron_right">chevron_right</span>
+</div>
+</button>
+</section>
+<!-- Footer Info -->
+<div class="pt-4 pb-2 text-center space-y-1">
+<p class="text-xs text-[#6B6B70] font-medium tracking-tight">Nag mocks your lateness, never you.</p>
+<p class="text-[11px] text-[#6B6B70]/80">Nag v1.2.0 • Made with tough love</p>
+</div>
+</div>
+</div>
+<!-- Shared Component: BottomNavBar -->
+<!-- Contextual Active: Settings (index 2) -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 py-2 border-t border-border bg-card/95 backdrop-blur-md dark:bg-card/95">
+<div class="max-w-md w-full mx-auto flex justify-around items-center">
+<!-- Destination 1: Today (Inactive) -->
+<button class="flex flex-col items-center justify-center text-muted-foreground font-normal py-1 hover:text-foreground transition-colors active:scale-95 transition-transform duration-150" type="button">
+<span class="material-symbols-outlined text-2xl text-[#6B6B70]" data-icon="today">today</span>
+<span class="font-body text-xs font-medium text-[#6B6B70] mt-0.5">Today</span>
+</button>
+<!-- Destination 2: Upcoming (Inactive) -->
+<button class="flex flex-col items-center justify-center text-muted-foreground font-normal py-1 hover:text-foreground transition-colors active:scale-95 transition-transform duration-150" type="button">
+<span class="material-symbols-outlined text-2xl text-[#6B6B70]" data-icon="calendar_month">calendar_month</span>
+<span class="font-body text-xs font-medium text-[#6B6B70] mt-0.5">Upcoming</span>
+</button>
+<!-- Destination 3: Settings (ACTIVE) -->
+<button class="flex flex-col items-center justify-center text-foreground font-semibold py-1 hover:text-foreground transition-colors active:scale-95 transition-transform duration-150" type="button">
+<span class="material-symbols-outlined text-2xl text-[#1C1C1E]" data-icon="tune" style="font-variation-settings: 'FILL' 1;">tune</span>
+<span class="font-body text-xs font-semibold text-[#1C1C1E] mt-0.5">Settings</span>
+</button>
+</div>
+</nav>
+</body></html>

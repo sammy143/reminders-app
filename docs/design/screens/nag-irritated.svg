@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200" fill="none">
+  <!-- Glowing subtle underlayer / shadow -->
+  <ellipse cx="100" cy="180" rx="60" ry="12" fill="#7F1D1D" opacity="0.4"/>
+  <!-- Blob body -->
+  <path d="M100 24 C148 24 176 56 176 104 C176 150 144 174 100 174 C56 174 24 150 24 104 C24 56 52 24 100 24 Z" fill="#FFFFFF"/>
+  
+  <!-- Annoyed Brow / Forehead crease -->
+  <path d="M62 68 Q100 82 138 68" stroke="#B91C1C" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+  
+  <!-- Left Eye: Half-lidded deadpan / glare -->
+  <ellipse cx="72" cy="94" rx="14" ry="11" fill="#1C1C1E"/>
+  <!-- Left Eye Eyelid cutting down diagonally for angry glare -->
+  <path d="M56 86 L88 95 L88 82 L56 82 Z" fill="#FFFFFF"/>
+  <ellipse cx="70" cy="97" rx="3.5" ry="3.5" fill="#FFFFFF"/>
+
+  <!-- Right Eye: Half-lidded deadpan / glare -->
+  <ellipse cx="128" cy="94" rx="14" ry="11" fill="#1C1C1E"/>
+  <!-- Right Eye Eyelid cutting down diagonally for angry glare -->
+  <path d="M144 86 L112 95 L112 82 L144 82 Z" fill="#FFFFFF"/>
+  <ellipse cx="126" cy="97" rx="3.5" ry="3.5" fill="#FFFFFF"/>
+
+  <!-- Stern / Irritated Straight flat Mouth -->
+  <path d="M82 128 L118 126" stroke="#1C1C1E" stroke-width="5" stroke-linecap="round"/>
+
+  <!-- Little steamy annoyance smoke puffs on side -->
+  <path d="M165 65 Q175 60 172 50 Q168 42 178 36" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" opacity="0.8" fill="none"/>
+  <path d="M35 65 Q25 60 28 50 Q32 42 22 36" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" opacity="0.8" fill="none"/>
+
+  <!-- Crossed little stubby arms -->
+  <path d="M58 142 C58 142 80 154 100 154 C120 154 142 142 142 142" stroke="#1C1C1E" stroke-width="5" stroke-linecap="round" fill="none"/>
+  <path d="M68 150 C78 158 92 160 100 160 C108 160 122 158 132 150" stroke="#1C1C1E" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+</svg>

@@ -23,3 +23,12 @@ Newest entry at the bottom. Each session appends one entry:
 - Verified: `bash scripts/check.sh`.
 - Next: F000 — must run locally (Stitch is local-only); needs the user's pick of visual vibe.
 - Blockers/notes: vibe undecided (e.g. clean/minimal + menacing character vs loud/cartoonish).
+
+## 2026-09-24 — F000 — PASS
+- Did: design system in docs/design/DESIGN.md ("calm app, angry colors", mascot Nag, working
+  name); Stitch screens home, new-appointment, active-alarm, settings + nag-irritated.svg
+  exported to docs/design/screens/.
+- Verified: all 4 verify steps met; screens reviewed visually; user approved.
+- Next: F001 scaffold Expo + NativeWind (can run in a cloud session).
+- Blockers/notes: mockup deviations (placeholder copy, out-of-scope UI, inconsistent
+  mascot) recorded in docs/design/README.md — docs win over mockups.

@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Nag — Active Savage Alarm</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&amp;family=Inter:wght@400;500;600;700&amp;family=Public+Sans:wght@600;700;800&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {},
+          borderRadius: {
+            "DEFAULT": "0.5rem",
+            "lg": "1rem",
+            "xl": "1.5rem",
+            "full": "9999px"
+          },
+          spacing: {},
+          fontFamily: {
+            headline: ["Public Sans", "sans-serif"],
+            display: ["Public Sans", "sans-serif"],
+            brico: ["'Bricolage Grotesque'", "sans-serif"],
+            body: ["Inter", "sans-serif"],
+            label: ["Inter", "sans-serif"]
+          },
+          fontSize: {}
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-family: 'Material Symbols Outlined';
+      font-weight: normal;
+      font-style: normal;
+      line-height: 1;
+      display: inline-block;
+      text-transform: none;
+      letter-spacing: normal;
+      word-wrap: normal;
+      white-space: nowrap;
+      direction: ltr;
+    }
+
+    @keyframes subtle-pulse {
+      0%, 100% {
+        transform: scale(1);
+        opacity: 0.96;
+      }
+      50% {
+        transform: scale(1.02);
+        opacity: 1;
+      }
+    }
+
+    @keyframes ambient-glow {
+      0%, 100% {
+        opacity: 0.35;
+      }
+      50% {
+        opacity: 0.6;
+      }
+    }
+
+    .animate-alarm-pulse {
+      animation: subtle-pulse 2.4s ease-in-out infinite;
+    }
+
+    .animate-glow {
+      animation: ambient-glow 3s ease-in-out infinite;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-[#1C1C1E] min-h-screen flex items-center justify-center font-body antialiased selection:bg-white selection:text-[#B91C1C] p-0 sm:p-4">
+<!-- Mobile Frame Container (Strict 390px viewport styling) -->
+<div class="relative w-full max-w-[390px] h-[844px] max-h-screen bg-[#B91C1C] overflow-hidden flex flex-col justify-between shadow-2xl rounded-none sm:rounded-[44px] border-0 sm:border-[8px] sm:border-[#2C2C2E]">
+<!-- Ambient Vignette & Emergency Alarm Glow -->
+<div class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(239,68,68,0.3)_0%,rgba(142,20,20,0.85)_100%)]"></div>
+<div class="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 w-80 h-80 bg-red-400/25 rounded-full blur-3xl animate-glow"></div>
+<!-- Status Bar (iOS standard reproduction in pure white) -->
+<header class="relative z-20 pt-3 px-7 flex justify-between items-center text-white text-[15px] font-semibold tracking-tight">
+<span>9:41</span>
+<div class="flex items-center space-x-2 text-white">
+<span class="material-symbols-outlined text-[17px] leading-none" data-icon="signal_cellular_alt">signal_cellular_alt</span>
+<span class="material-symbols-outlined text-[17px] leading-none" data-icon="wifi">wifi</span>
+<span class="material-symbols-outlined text-[20px] leading-none" data-icon="battery_full">battery_full</span>
+</div>
+</header>
+<!-- Top Badge Header -->
+<div class="relative z-10 px-6 pt-3 flex flex-col items-center">
+<div class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/20 backdrop-blur-md text-white/95 text-xs font-semibold tracking-wider uppercase border border-white/10">
+<span class="material-symbols-outlined text-sm leading-none text-white/80" data-icon="event_note">event_note</span>
+<span>DENTIST · 3:00 PM</span>
+</div>
+</div>
+<!-- Hero Countdown & Urgency Zone -->
+<main class="relative z-10 px-6 flex flex-col items-center text-center flex-1 justify-center my-auto">
+<!-- Big Countdown -->
+<div class="space-y-1 mb-5">
+<h1 class="font-brico text-[76px] leading-none font-extrabold text-white tracking-tight drop-shadow-sm select-none">
+          +6 min
+        </h1>
+<p class="text-white/85 text-[15px] font-medium tracking-normal">
+          past your leave-by time
+        </p>
+</div>
+<!-- Center Mascot Stage: Nag (Irritated Blob with deadpan glaring eyes) -->
+<div class="relative flex flex-col items-center animate-alarm-pulse mb-1">
+<!-- SVG Mascot Illustration: Nag deadpan blob in savage mode -->
+<svg class="w-36 h-36 drop-shadow-lg overflow-visible" fill="none" viewbox="0 0 160 160" xmlns="http://www.w3.org/2000/svg">
+<!-- Blob Body (slightly tinted warm off-white, tense silhouette) -->
+<path d="M80 18C122 18 144 48 144 88C144 126 122 142 80 142C38 142 16 126 16 88C16 48 38 18 80 18Z" fill="#FDFCFB"></path>
+<!-- Sweat drop of mounting rage -->
+<path d="M125 40C125 40 131 46 131 50C131 53.3137 128.314 56 125 56C121.686 56 119 53.3137 119 50C119 46 125 40 125 40Z" fill="#B91C1C" opacity="0.4"></path>
+<!-- Stern angled eyebrows -->
+<line stroke="#1C1C1E" stroke-linecap="round" stroke-width="4.5" x1="44" x2="68" y1="58" y2="67"></line>
+<line stroke="#1C1C1E" stroke-linecap="round" stroke-width="4.5" x1="116" x2="92" y1="58" y2="67"></line>
+<!-- Deadpan Glaring Half-lidded Eyes -->
+<ellipse cx="56" cy="76" fill="#1C1C1E" rx="9" ry="9"></ellipse>
+<!-- Eyelid fold (half-shut, heavily unamused) -->
+<path d="M46 68H66C66 74 61.5 78 56 78C50.5 78 46 74 46 68Z" fill="#FDFCFB"></path>
+<ellipse cx="104" cy="76" fill="#1C1C1E" rx="9" ry="9"></ellipse>
+<path d="M94 68H114C114 74 109.5 78 104 78C98.5 78 94 74 94 68Z" fill="#FDFCFB"></path>
+<!-- Pinpoint sharp pupils staring right through you -->
+<circle cx="56" cy="75" fill="#FFFFFF" r="3.2"></circle>
+<circle cx="104" cy="75" fill="#FFFFFF" r="3.2"></circle>
+<!-- Flat, completely deadpan unmoving line mouth -->
+<line stroke="#1C1C1E" stroke-linecap="round" stroke-width="4" x1="68" x2="92" y1="99" y2="99"></line>
+<!-- Folded crossed arms -->
+<path d="M42 110C48 119 66 122 80 122C94 122 112 119 118 110" fill="none" stroke="#1C1C1E" stroke-linecap="round" stroke-width="4"></path>
+<path d="M50 114H110" stroke="#E5E5E2" stroke-linecap="round" stroke-width="3"></path>
+</svg>
+</div>
+<!-- Speech Bubble Card with pointer triangle -->
+<div class="w-full relative mt-2">
+<!-- Speech Bubble Tail pointing up to mascot -->
+<div class="w-0 h-0 border-l-[9px] border-l-transparent border-r-[9px] border-r-transparent border-b-[9px] border-b-white mx-auto -mb-[1px]"></div>
+<!-- Speech Bubble Container -->
+<div class="bg-white rounded-2xl p-4 sm:p-4.5 shadow-xl text-left border border-white/40">
+<p class="font-body text-[#1C1C1E] text-[15px] leading-snug font-normal">
+            “Your shoes are by the door. You are not. The dentist starts in 19 min — <span class="font-bold text-[#B91C1C]">leave NOW.</span>”
+          </p>
+</div>
+</div>
+<!-- Escalation Stepper Indicator -->
+<div class="mt-6 flex flex-col items-center space-y-2">
+<!-- Dot Stepper: Step 5 of 6 (Savage) -->
+<div aria-label="Urgency Step 5 of 6" class="flex items-center space-x-2">
+<span class="w-2.5 h-2.5 rounded-full bg-white transition-all"></span>
+<span class="w-2.5 h-2.5 rounded-full bg-white transition-all"></span>
+<span class="w-2.5 h-2.5 rounded-full bg-white transition-all"></span>
+<span class="w-2.5 h-2.5 rounded-full bg-white transition-all"></span>
+<span class="w-2.5 h-2.5 rounded-full bg-white ring-2 ring-white/40 ring-offset-2 ring-offset-[#B91C1C] transition-all"></span>
+<span class="w-2.5 h-2.5 rounded-full border-2 border-white/50 bg-transparent transition-all"></span>
+</div>
+<p class="text-white/80 text-xs font-semibold tracking-wider uppercase font-body">
+          Step 5 of 6 · Escalation: Savage
+        </p>
+</div>
+</main>
+<!-- Bottom Actions Area -->
+<footer class="relative z-10 px-6 pb-4 pt-2 flex flex-col items-center space-y-3">
+<!-- Primary Action Button (White ink-black text, h-52px, radius 12px) -->
+<button class="w-full h-[52px] rounded-[12px] bg-white text-[#1C1C1E] font-bold text-base flex items-center justify-center space-x-2 shadow-lg hover:bg-zinc-100 active:scale-[0.98] transition-all duration-150 cursor-pointer" onclick="this.classList.add('scale-[0.98]'); setTimeout(() =&gt; this.classList.remove('scale-[0.98]'), 150);" type="button">
+<span>I’ve left</span>
+<span class="material-symbols-outlined text-xl leading-none font-bold" data-icon="arrow_forward">arrow_forward</span>
+</button>
+<!-- Secondary Stuck Link Button -->
+<button class="text-white/75 hover:text-white font-medium text-sm py-1 transition-colors duration-150 flex items-center gap-1.5 cursor-pointer" type="button">
+<span class="material-symbols-outlined text-base leading-none text-white/60" data-icon="help_outline">help_outline</span>
+<span>I’m genuinely stuck</span>
+</button>
+<!-- Home Indicator Bar -->
+<div class="pt-2 pb-1">
+<div class="w-32 h-1 bg-white/60 rounded-full mx-auto"></div>
+</div>
+</footer>
+</div>
+</body></html>

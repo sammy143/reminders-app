@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Nag — Today</title>
+<!-- Google Fonts: Inter & Bricolage Grotesque / Public Sans -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;700;800&amp;family=Inter:wght@400;500;600;700&amp;family=Public+Sans:wght@600;700;800&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            background: "#F7F7F5",
+            card: "#FFFFFF",
+            border: "#E5E5E2",
+            ink: "#1C1C1E",
+            muted: "#6B6B70",
+            tone: {
+              teal: "#14B8A6",
+              amber: "#F59E0B",
+              orange: "#F97316",
+              red: "#EF4444",
+              deepred: "#B91C1C",
+              indigo: "#6366F1",
+              green: "#22C55E"
+            }
+          },
+          borderRadius: {
+            "DEFAULT": "0.5rem",
+            "lg": "1rem",
+            "xl": "1.5rem",
+            "2xl": "1rem",
+            "full": "9999px"
+          },
+          fontFamily: {
+            headline: ["Bricolage Grotesque", "Public Sans", "sans-serif"],
+            display: ["Bricolage Grotesque", "Public Sans", "sans-serif"],
+            body: ["Inter", "sans-serif"],
+            label: ["Inter", "sans-serif"]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    body {
+      background-color: #F7F7F5;
+      color: #1C1C1E;
+      font-family: 'Inter', sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 450, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    .material-symbols-outlined.fill {
+      font-variation-settings: 'FILL' 1, 'wght' 450, 'GRAD' 0, 'opsz' 24;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-ink min-h-screen flex justify-center selection:bg-amber-100">
+<!-- Mobile Screen Container (390px simulated layout) -->
+<div class="w-full max-w-[420px] min-h-screen bg-background relative flex flex-col pb-28 pt-2">
+<!-- Top Status / Context bar placeholder -->
+<div class="px-6 pt-3 flex justify-between items-center text-xs font-semibold tracking-tight text-muted">
+<span>9:41</span>
+<div class="flex items-center space-x-1.5">
+<span class="material-symbols-outlined text-sm">signal_cellular_alt</span>
+<span class="material-symbols-outlined text-sm">wifi</span>
+<span class="material-symbols-outlined text-sm">battery_full</span>
+</div>
+</div>
+<!-- TopAppBar (from Shared Components JSON) -->
+<header class="flex justify-between items-center w-full px-6 py-4 mx-auto">
+<div class="flex items-center space-x-2">
+<h1 class="font-headline text-3xl font-extrabold tracking-tight text-ink">Today</h1>
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#EAEAE6] text-muted">
+          Tue, Oct 24
+        </span>
+</div>
+<!-- Leading / Trailing cluster with Nag mascot and settings -->
+<div class="flex items-center space-x-3">
+<!-- Mascot Avatar: Nag deadpan blob with half-lidded unamused eyes -->
+<button class="relative w-9 h-9 rounded-full bg-[#EAEAE5] border border-border flex items-center justify-center hover:opacity-80 transition-opacity active:scale-95" title="Nag: deadpan blob">
+<svg class="w-6 h-6 text-ink" fill="none" stroke="currentColor" viewbox="0 0 32 32">
+<!-- Round Blob -->
+<ellipse cx="16" cy="16" fill="#F0F0EC" rx="13" ry="12" stroke="#1C1C1E" stroke-width="1.8"></ellipse>
+<!-- Flat half-lidded left eye -->
+<path d="M9 13.5h4" stroke="#1C1C1E" stroke-linecap="round" stroke-width="1.8"></path>
+<path d="M9.5 15.5a2 2 0 0 0 3 0" stroke="#1C1C1E" stroke-width="1.5"></path>
+<!-- Flat half-lidded right eye -->
+<path d="M19 13.5h4" stroke="#1C1C1E" stroke-linecap="round" stroke-width="1.8"></path>
+<path d="M19.5 15.5a2 2 0 0 0 3 0" stroke="#1C1C1E" stroke-width="1.5"></path>
+<!-- Straight deadpan mouth -->
+<line stroke="#1C1C1E" stroke-linecap="round" stroke-width="1.8" x1="12" x2="20" y1="21" y2="21"></line>
+</svg>
+<!-- Subtle warning ping indicator -->
+<span class="absolute top-0 right-0 w-2.5 h-2.5 rounded-full bg-tone-amber border-2 border-white"></span>
+</button>
+<!-- Trailing Settings icon -->
+<button aria-label="Settings" class="p-2 text-muted hover:text-ink transition-colors active:scale-95 duration-150">
+<span class="material-symbols-outlined text-[22px]">settings</span>
+</button>
+</div>
+</header>
+<!-- Main Content Area -->
+<main class="px-5 flex-1 space-y-5">
+<!-- Nag Speech Bubble / Callout Widget -->
+<section class="relative bg-card border border-tone-amber/70 rounded-2xl p-4 shadow-sm transition-all hover:border-tone-amber">
+<!-- Callout pointer triangle -->
+<div class="absolute -top-2 right-12 w-3.5 h-3.5 bg-card border-t border-l border-tone-amber/70 transform rotate-45"></div>
+<div class="flex items-start space-x-3.5">
+<!-- Mascot expression in bubble -->
+<div class="flex-shrink-0 w-8 h-8 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center">
+<svg class="w-5 h-5 text-amber-950" fill="none" stroke="currentColor" viewbox="0 0 32 32">
+<ellipse cx="16" cy="16" fill="#FEF3C7" rx="12" ry="11" stroke="#B45309" stroke-width="1.8"></ellipse>
+<!-- Unamused tilted eyebrows/lids -->
+<line stroke="#B45309" stroke-linecap="round" stroke-width="1.8" x1="9" x2="13" y1="13" y2="14"></line>
+<line stroke="#B45309" stroke-linecap="round" stroke-width="1.8" x1="23" x2="19" y1="13" y2="14"></line>
+<!-- Deadpan slit eyes -->
+<circle cx="11.5" cy="16" fill="#B45309" r="1"></circle>
+<circle cx="20.5" cy="16" fill="#B45309" r="1"></circle>
+<line stroke="#B45309" stroke-linecap="round" stroke-width="1.8" x1="12.5" x2="19.5" y1="21.5" y2="21.5"></line>
+</svg>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-center justify-between mb-1">
+<span class="text-[11px] font-bold uppercase tracking-wider text-tone-amber flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-tone-amber animate-pulse"></span>
+                Nag • Firm Tone
+              </span>
+<span class="text-[11px] text-muted font-medium">Leave in 42 min</span>
+</div>
+<p class="text-[14px] leading-snug font-medium text-ink">
+              "Dentist at 3. You leave at 2:30. I'll be watching."
+            </p>
+</div>
+</div>
+</section>
+<!-- Streak Pill Banner -->
+<section class="flex items-center justify-between px-3.5 py-2 rounded-full bg-[#EBF7EE] border border-[#D1F2D9] text-[#166534]">
+<div class="flex items-center space-x-2">
+<span class="text-sm">🔥</span>
+<span class="text-xs font-semibold tracking-tight font-label">4-day on-time streak</span>
+</div>
+<span class="text-[11px] font-medium text-[#166534]/80">Personal best</span>
+</section>
+<!-- Reminders List / Bento Flow -->
+<section class="space-y-3">
+<div class="flex justify-between items-center px-1 pt-1">
+<h2 class="text-xs font-bold uppercase tracking-wider text-muted">Schedule</h2>
+<span class="text-xs text-muted">3 remaining</span>
+</div>
+<!-- Card 1: Urgency High/Warning (Amber) -->
+<article class="relative overflow-hidden bg-card border border-border rounded-2xl p-4 transition-all duration-150 active:scale-[0.99] hover:border-gray-300">
+<!-- Urgency Accent Edge Bar -->
+<div class="absolute left-0 top-0 bottom-0 w-1.5 bg-tone-amber"></div>
+<div class="pl-2 flex items-start justify-between">
+<div class="space-y-1">
+<div class="flex items-center space-x-2">
+<span class="text-lg font-bold text-ink font-headline">Dentist</span>
+<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-tone-amber border border-amber-200">
+                  In person
+                </span>
+</div>
+<p class="text-xs font-medium text-tone-amber flex items-center space-x-1">
+<span class="material-symbols-outlined text-[15px]">directions_car</span>
+<span>Leave by 2:30 · 12 min drive</span>
+</p>
+</div>
+<!-- Time & Nag reaction icon -->
+<div class="flex flex-col items-end space-y-1.5">
+<span class="text-sm font-bold text-ink">3:00 PM</span>
+<!-- Squinting Nag face reaction icon -->
+<div class="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center text-tone-amber" title="Nag is mildly irritated">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<circle cx="12" cy="12" r="9" stroke-width="1.8"></circle>
+<line stroke-linecap="round" stroke-width="1.8" x1="7.5" x2="10.5" y1="10.5" y2="11.5"></line>
+<line stroke-linecap="round" stroke-width="1.8" x1="16.5" x2="13.5" y1="10.5" y2="11.5"></line>
+<line stroke-linecap="round" stroke-width="1.8" x1="9" x2="15" y1="15.5" y2="15.5"></line>
+</svg>
+</div>
+</div>
+</div>
+</article>
+<!-- Card 2: Urgency Normal/Polite (Teal) -->
+<article class="relative overflow-hidden bg-card border border-border rounded-2xl p-4 transition-all duration-150 active:scale-[0.99] hover:border-gray-300">
+<!-- Urgency Accent Edge Bar -->
+<div class="absolute left-0 top-0 bottom-0 w-1.5 bg-tone-teal"></div>
+<div class="pl-2 flex items-start justify-between">
+<div class="space-y-1">
+<div class="flex items-center space-x-2">
+<span class="text-base font-bold text-ink font-headline">Team standup</span>
+<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-teal-50 text-tone-teal border border-teal-200">
+                  Online
+                </span>
+</div>
+<p class="text-xs text-muted font-normal flex items-center space-x-1">
+<span class="material-symbols-outlined text-[15px]">videocam</span>
+<span>Online · one polite reminder</span>
+</p>
+</div>
+<!-- Time & Calm Nag reaction icon -->
+<div class="flex flex-col items-end space-y-1.5">
+<span class="text-sm font-semibold text-ink">4:30 PM</span>
+<div class="w-6 h-6 rounded-full bg-teal-50 flex items-center justify-center text-tone-teal" title="Nag is calm">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<circle cx="12" cy="12" r="9" stroke-width="1.8"></circle>
+<line stroke-linecap="round" stroke-width="1.8" x1="8" x2="10" y1="11" y2="11"></line>
+<line stroke-linecap="round" stroke-width="1.8" x1="14" x2="16" y1="11" y2="11"></line>
+<line stroke-linecap="round" stroke-width="1.8" x1="9.5" x2="14.5" y1="15" y2="15"></line>
+</svg>
+</div>
+</div>
+</div>
+</article>
+<!-- Card 3: Urgency Calm/Casual (Teal) -->
+<article class="relative overflow-hidden bg-card border border-border rounded-2xl p-4 transition-all duration-150 active:scale-[0.99] hover:border-gray-300">
+<!-- Urgency Accent Edge Bar -->
+<div class="absolute left-0 top-0 bottom-0 w-1.5 bg-tone-teal"></div>
+<div class="pl-2 flex items-start justify-between">
+<div class="space-y-1">
+<div class="flex items-center space-x-2">
+<span class="text-base font-bold text-ink font-headline">Dinner with Maya</span>
+<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-stone-100 text-stone-600 border border-stone-200">
+                  Metro
+                </span>
+</div>
+<p class="text-xs text-muted font-normal flex items-center space-x-1">
+<span class="material-symbols-outlined text-[15px]">directions_walk</span>
+<span>Leave by 7:05</span>
+</p>
+</div>
+<!-- Time -->
+<div class="flex flex-col items-end space-y-1.5">
+<span class="text-sm font-semibold text-ink">7:30 PM</span>
+<span class="text-[11px] text-muted font-medium">3h buffer</span>
+</div>
+</div>
+</article>
+<!-- Card 4: Completed Card (Green accent, muted state) -->
+<article class="relative overflow-hidden bg-card/60 border border-border/80 rounded-2xl p-3.5 opacity-75">
+<!-- Urgency Accent Edge Bar -->
+<div class="absolute left-0 top-0 bottom-0 w-1.5 bg-tone-green"></div>
+<div class="pl-2 flex items-center justify-between">
+<div class="flex items-center space-x-2.5">
+<div class="w-5 h-5 rounded-full bg-emerald-100 text-tone-green flex items-center justify-center">
+<span class="material-symbols-outlined text-xs font-bold">check</span>
+</div>
+<div>
+<span class="text-sm font-medium text-muted line-through">Gym — left on time ✓</span>
+<p class="text-[11px] text-muted/70">8:00 AM · Left at 7:42 AM</p>
+</div>
+</div>
+<span class="text-xs font-medium text-tone-green">0 min late</span>
+</div>
+</article>
+</section>
+<!-- Section Label: Tomorrow -->
+<section class="space-y-3 pt-2">
+<div class="flex justify-between items-center px-1">
+<h2 class="text-xs font-bold uppercase tracking-wider text-muted font-label">Tomorrow</h2>
+<span class="text-xs text-muted">Wed, Oct 25</span>
+</div>
+<!-- Tomorrow Preview Card -->
+<article class="relative overflow-hidden bg-card border border-border rounded-2xl p-4">
+<div class="absolute left-0 top-0 bottom-0 w-1.5 bg-tone-teal"></div>
+<div class="pl-2 flex items-start justify-between">
+<div class="space-y-1">
+<div class="flex items-center space-x-2">
+<span class="text-base font-bold text-ink font-headline">Quarterly Review prep</span>
+<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-teal-50 text-tone-teal border border-teal-200">
+                  Online
+                </span>
+</div>
+<p class="text-xs text-muted font-normal">Self reminder · Deck review</p>
+</div>
+<span class="text-sm font-semibold text-ink">10:00 AM</span>
+</div>
+</article>
+</section>
+</main>
+<!-- Floating Action Button (FAB) -->
+<!-- Positioned precisely above the bottom navbar, docked at bottom right -->
+<div class="fixed bottom-20 right-6 z-40">
+<button aria-label="Add new reminder" class="w-14 h-14 rounded-full bg-ink text-white shadow-lg flex items-center justify-center active:scale-95 transition-all duration-150 hover:bg-neutral-800">
+<span class="material-symbols-outlined text-2xl">add</span>
+</button>
+</div>
+<!-- BottomNavBar (Executed precisely as defined in Shared Components JSON) -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 py-2 border-t border-border bg-card/95 backdrop-blur-md">
+<!-- Item 1: Today (ACTIVE based on Semantic Hierarchy and screen intent) -->
+<button class="flex flex-col items-center justify-center text-foreground font-semibold py-1 active:scale-95 transition-transform duration-150">
+<span class="material-symbols-outlined fill text-ink text-[24px]">today</span>
+<span class="font-body text-xs font-semibold text-ink mt-0.5">Today</span>
+</button>
+<!-- Item 2: Upcoming (Inactive) -->
+<button class="flex flex-col items-center justify-center text-muted-foreground font-normal py-1 hover:text-foreground transition-colors active:scale-95 duration-150">
+<span class="material-symbols-outlined text-muted text-[24px]">calendar_month</span>
+<span class="font-body text-xs font-normal text-muted mt-0.5">Upcoming</span>
+</button>
+<!-- Item 3: Settings (Inactive) -->
+<button class="flex flex-col items-center justify-center text-muted-foreground font-normal py-1 hover:text-foreground transition-colors active:scale-95 duration-150">
+<span class="material-symbols-outlined text-muted text-[24px]">tune</span>
+<span class="font-body text-xs font-normal text-muted mt-0.5">Settings</span>
+</button>
+</nav>
+</div>
+</body></html>

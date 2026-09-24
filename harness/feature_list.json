@@ -11,8 +11,8 @@
         "docs/design/screens/ has a screenshot + HTML export per screen",
         "Must run locally (Stitch MCP is not available in cloud sessions)"
       ],
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Approved by user 2026-09-24. Stitch project projects/846010921996420651. Mockup deviations listed in docs/design/README.md."
     },
     {
       "id": "F001",
