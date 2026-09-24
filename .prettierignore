@@ -1,0 +1,12 @@
+node_modules/
+.expo/
+dist/
+coverage/
+docs/
+harness/
+package-lock.json
+*.md
+.claude/
+.serena/
+assets/
+scripts/

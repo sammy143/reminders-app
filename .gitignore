@@ -11,3 +11,16 @@ android/
 .DS_Store
 .claude/settings.local.json
 coverage/
+
+# Expo / Metro / TS (from create-expo-app template)
+expo-env.d.ts
+.metro-health-check*
+*.tsbuildinfo
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.pem
