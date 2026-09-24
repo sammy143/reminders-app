@@ -37,8 +37,8 @@
         "computeLeaveBy unit tests cover buffer, zero travel, midnight crossing",
         "bash scripts/check.sh passes"
       ],
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "startsAt must carry an offset (Z or ±hh:mm); computeLeaveBy returns Date, throws RangeError on bad input."
     },
     {
       "id": "F003",

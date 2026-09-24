@@ -31,6 +31,8 @@ mirrored in `tailwind.config.js` (NativeWind). Change them here first.
 | `tone-supportive` | `#6366F1` | "I'm genuinely stuck" mode (indigo) |
 | `tone-done` | `#22C55E` | left on time / streak |
 
+`unhinged` uses `tone-savage`; `tone-done` is a status colour, not a Tone.
+
 Rules: tone colors appear as accents (status dot, left edge bar, Nag tint, countdown text),
 never as full-screen backgrounds except the active-alarm screen. Intensity chips use
 polite (mild), sarcastic (spicy), savage (savage).

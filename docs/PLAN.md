@@ -41,19 +41,23 @@ Decided 2026-09-24 (defaults — change only with a note here).
 
 ```ts
 type Intensity = 'mild' | 'spicy' | 'savage';
+// Steps 1–6 of the escalation schedule, plus `supportive` after "I'm genuinely stuck".
+type Tone = 'polite' | 'firm' | 'sarcastic' | 'rude' | 'savage' | 'unhinged' | 'supportive';
+type AppointmentStatus = 'scheduled' | 'snoozed' | 'left' | 'stuck' | 'done';
+type AppointmentSource = 'manual' | 'calendar';
 
 interface Appointment {
   id: string;
   title: string;
-  startsAt: string;          // ISO
+  startsAt: string;          // ISO 8601 with offset; services/ normalise picker/calendar values
   travelMinutes: number;     // manual in v1
   bufferMinutes: number;     // default 5
   inPerson: boolean;
   intensity: Intensity;
-  status: 'scheduled' | 'snoozed' | 'left' | 'stuck' | 'done';
+  status: AppointmentStatus;
   notificationIds: string[]; // for cancellation
   lines?: string[];          // pre-generated insults (v2)
-  source: 'manual' | 'calendar';
+  source: AppointmentSource;
   calendarEventId?: string;
 }
 ```
