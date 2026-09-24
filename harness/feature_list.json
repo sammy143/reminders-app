@@ -25,8 +25,8 @@
         "bash scripts/check.sh passes",
         "npx expo start --web serves a placeholder home screen"
       ],
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Expo SDK 57, NativeWind 4. In the sandbox run Expo CLI with EXPO_OFFLINE=1 (api.expo.dev blocked)."
     },
     {
       "id": "F002",

@@ -32,3 +32,13 @@ Newest entry at the bottom. Each session appends one entry:
 - Next: F001 scaffold Expo + NativeWind (can run in a cloud session).
 - Blockers/notes: mockup deviations (placeholder copy, out-of-scope UI, inconsistent
   mascot) recorded in docs/design/README.md — docs win over mockups.
+
+## 2026-09-24 — F001 — PASS
+- Did: Expo SDK 57 scaffold (RN 0.86, TS strict, Expo Router in src/app); NativeWind 4 with
+  DESIGN.md tokens in tailwind.config.js; placeholder HomeScreen in src/ui + RNTL test;
+  scripts lint (expo lint + prettier), typecheck, test (jest-expo).
+- Verified: verifier PASS on all 5 steps (check.sh green; web served + screenshot shows tokens).
+  Reviewer: no blockers; fixed prettier/eslint scope, dropped unused @/assets alias, logged debt.
+- Next: F002.
+- Blockers/notes: sandbox blocks api.expo.dev, so use `EXPO_OFFLINE=1` for `npx expo install`/`start`.
+  Fonts are not loaded yet and the icons are still the template's (see docs/tech-debt.md). Only tested on web, not in Expo Go.
