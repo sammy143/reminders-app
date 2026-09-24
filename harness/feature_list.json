@@ -76,7 +76,7 @@
         "bash scripts/check.sh passes"
       ],
       "passes": false,
-      "notes": ""
+      "notes": "PASS-PENDING-HUMAN: web verified (create/edit/delete + reload); Expo Go persistence + native pickers await a device check."
     },
     {
       "id": "F006",

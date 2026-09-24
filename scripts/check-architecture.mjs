@@ -75,6 +75,10 @@ function checkFile(file) {
       fail(file, `'${layer}/' must stay pure but imports '${spec}'. Move platform code to services/ and pass data in (docs/ARCHITECTURE.md).`);
       continue;
     }
+    if (layer === 'ui' && /^expo-router(\/|$)/.test(spec)) {
+      fail(file, `ui/ must not import '${spec}': navigation belongs to routes. Take callbacks (onClose, onSaved…) as props and call the router from src/app/ (docs/ARCHITECTURE.md).`);
+      continue;
+    }
     const target = resolveImport(file, spec);
     if (!target) continue;
     const tLayer = layerOf(target);

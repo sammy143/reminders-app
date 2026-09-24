@@ -25,6 +25,8 @@ Styling: NativeWind classes in `ui/` and `app/`, tokens from `docs/design/DESIGN
 - `types/` and `domain/` import no `react`, `react-native`, or `expo*` packages — keeps
   them pure and unit-testable in plain Jest.
 - `ui/` never imports `services/` directly (go through `state/`).
+- `ui/` never imports `expo-router`: screens take navigation callbacks as props; routes in
+  `app/` own the router (F005).
 - Files ≤ 300 lines.
 - No Anthropic API keys (`sk-ant-…`) anywhere in tracked source.
 

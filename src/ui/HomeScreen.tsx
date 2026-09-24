@@ -1,18 +1,108 @@
-import { Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-// Placeholder home screen (F001). The real Today list arrives with F005.
-export function HomeScreen() {
+import { cardStatus, groupUpcoming, nextNagLine, type DayGroup } from '@/domain/today';
+import { useAppointments } from '@/state/appointments';
+import { useNow } from '@/state/useNow';
+
+import { AppointmentCard } from './components/AppointmentCard';
+import { Nag } from './components/Nag';
+import { NagBubble } from './components/NagBubble';
+import { formatDay, formatTime } from './format';
+import { TONE } from './tone';
+
+const IDLE_LINE = 'Nothing on the clock. Enjoy it while it lasts.';
+
+interface HomeScreenProps {
+  onAdd: () => void;
+  onOpen: (id: string) => void;
+}
+
+/** Today list (docs/design/screens/home.png; streak, tabs and settings are later features). */
+export function HomeScreen({ onAdd, onOpen }: HomeScreenProps) {
+  const now = useNow();
+  const appointments = useAppointments((s) => s.appointments);
+  const hydrated = useAppointments((s) => s.hydrated);
+  const loadError = useAppointments((s) => s.loadError);
+  const groups = groupUpcoming(appointments, now);
+  const nag = nextNagLine(appointments, now);
+  const nagTone = nag?.tone ?? 'done';
+
   return (
-    <SafeAreaView className="flex-1 bg-bg">
-      <View className="flex-1 justify-center gap-2 px-4">
-        <Text className="text-display text-ink">Today</Text>
-        <Text className="text-body text-ink-muted">Nothing to nag you about yet.</Text>
-        <View className="mt-4 flex-row items-center gap-2 rounded-card border border-line bg-surface p-4">
-          <View className="h-3 w-3 rounded-full bg-tone-polite" />
-          <Text className="text-label text-ink-muted">Reminders app scaffold is running.</Text>
+    <SafeAreaView className="flex-1 bg-bg" edges={['top']}>
+      <ScrollView contentContainerClassName="gap-6 px-4 pb-28 pt-4">
+        <View className="flex-row items-center justify-between">
+          <View className="flex-row items-center gap-3">
+            <Text className="text-display text-ink" role="heading">
+              Today
+            </Text>
+            <View className="rounded-full bg-line px-3 py-1">
+              <Text className="text-label text-ink-muted">{formatDay(now)}</Text>
+            </View>
+          </View>
+          <Nag tone={nagTone} size={44} />
         </View>
-      </View>
+
+        <NagBubble
+          tone={nagTone}
+          tail="right"
+          heading={nag ? `${TONE[nag.tone].label} tone` : 'Idle'}
+          aside={nag && nag.at.getTime() > now.getTime() ? `at ${formatTime(nag.at)}` : undefined}
+          line={nag?.text ?? IDLE_LINE}
+        />
+
+        {loadError ? (
+          <Text role="alert" className="text-label text-tone-rude">
+            {loadError} Try reopening the app.
+          </Text>
+        ) : null}
+        {hydrated && !loadError && groups.length === 0 ? (
+          <Text className="text-body text-ink-muted">Nothing to nag you about yet.</Text>
+        ) : null}
+        {groups.map((group) => (
+          <DaySection key={group.day.toISOString()} group={group} now={now} onOpen={onOpen} />
+        ))}
+      </ScrollView>
+
+      <Pressable
+        role="button"
+        aria-label="Add appointment"
+        onPress={onAdd}
+        className="absolute bottom-8 right-5 h-14 w-14 items-center justify-center rounded-full bg-primary"
+      >
+        <Text className="text-title text-surface">+</Text>
+      </Pressable>
     </SafeAreaView>
+  );
+}
+
+function DaySection(props: { group: DayGroup; now: Date; onOpen: (id: string) => void }) {
+  const { group, now } = props;
+  const title =
+    group.daysFromToday === 0
+      ? 'Schedule'
+      : group.daysFromToday === 1
+        ? 'Tomorrow'
+        : formatDay(group.day);
+  const aside = group.daysFromToday === 0 ? `${group.remaining} remaining` : formatDay(group.day);
+  return (
+    <View className="gap-3">
+      <View className="flex-row items-baseline justify-between px-1">
+        <Text className="text-label font-semibold uppercase tracking-wider text-ink-muted">
+          {title}
+        </Text>
+        {group.daysFromToday === 0 || group.daysFromToday === 1 ? (
+          <Text className="text-label text-ink-muted">{aside}</Text>
+        ) : null}
+      </View>
+      {group.appointments.map((a) => (
+        <AppointmentCard
+          key={a.id}
+          appointment={a}
+          status={cardStatus(a, now)}
+          onPress={() => props.onOpen(a.id)}
+        />
+      ))}
+    </View>
   );
 }
