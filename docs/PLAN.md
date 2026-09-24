@@ -96,8 +96,8 @@ Scope only. **Status lives in `harness/feature_list.json`** (F001–F013) — do
 ### v1 — core loop (Expo Go, one session)
 - Scaffold Expo + TS + Expo Router; ESLint/Prettier; Jest.
 - Appointment CRUD screens (list, add/edit) with travel minutes, in-person toggle, intensity.
-- Pure scheduling module: `computeLeaveBy`, `buildSeries(appointment) → [{at, tone, text}]`
-      — unit tested.
+- Pure scheduling module: `computeLeaveBy`, `buildSeries(appointment, now) → [{step, at, tone,
+  minutesFromLeaveBy}]`, then `withLines(steps, appt)` adds `text` from the bank — unit tested.
 - Hardcoded insult bank per tone × intensity, character voice.
 - Schedule/cancel series with expo-notifications; respect the 64 cap (next 2 events).
 - "I've left" (notification action + in-app) and "I'm genuinely stuck".
