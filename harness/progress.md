@@ -51,3 +51,13 @@ Newest entry at the bottom. Each session appends one entry:
 - Next: F003.
 - Blockers/notes: 'savage' is both an Intensity and a Tone value, so watch for mix-ups in buildSeries.
   The reviewer suggested checks for later: pin a non-UTC TZ in Jest; forbid Date.now()/new Date() in domain/.
+
+## 2026-09-24 — F003 — PASS
+- Did: src/domain/series.ts `buildSeries(appointment, now)` → SeriesStep[] {step, at, tone,
+  minutesFromLeaveBy}; intensity caps tone; past steps dropped (original step numbers kept);
+  non-in-person gets 1 polite step, pulled forward to now if missed before start. 15 tests.
+- Verified: verifier PASS twice, before and after fix round 1 (breaking the code on purpose; DST/midnight; TZ-independent).
+  The reviewer found no blockers; fix round 1 added the pull-forward rule, minutesFromLeaveBy, LadderTone and the PLAN wording.
+- Next: F004 insult bank. Read the "Notes for later features" in exec-plans/completed/F003.md first.
+- Blockers/notes: PLAN.md intensity wording and the non-in-person pull-forward were orchestrator
+  decisions. They're flagged for the user in the PR.

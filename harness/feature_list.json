@@ -50,8 +50,8 @@
         "Unit tests: mild never exceeds sarcastic tone; steps already in the past are skipped (now injected)",
         "bash scripts/check.sh passes"
       ],
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Intensity caps tone (mild<=sarcastic, spicy<=savage). Steps carry minutesFromLeaveBy. Non-in-person missed step 1 fires at now until startsAt. See exec-plans/completed/F003.md."
     },
     {
       "id": "F004",
