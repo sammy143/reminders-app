@@ -1,0 +1,6 @@
+{
+  "//": "Used by `npm run typecheck` (scripts/check.sh). Same as tsconfig.json but without Expo's generated files (.expo/types, expo-env.d.ts): they're gitignored and go stale between dev-server runs, so the gate only checks committed sources. Routes are checked by scripts/check-architecture.mjs instead.",
+  "extends": "./tsconfig.json",
+  "include": ["**/*.ts", "**/*.tsx", "nativewind-env.d.ts"],
+  "exclude": ["node_modules", ".expo", "expo-env.d.ts"]
+}

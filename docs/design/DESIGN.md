@@ -66,8 +66,27 @@ polite (mild), sarcastic (spicy), savage (savage).
 - **Intensity selector:** 3 pill chips — Mild / Spicy / Savage.
 - **Nag bubble:** speech bubble from Nag with the current line, bubble border in tone color.
 
+## Alarm screen (active-alarm.png) — exceptions to the rules above
+The takeover is the one full-tone background, so some rules change there (F007; colours live in
+`src/ui/alarmTone.ts`, checked against WCAG AA by `alarmTone.test.ts`):
+- **Primary action is a white (`surface`) button with ink text**, not the ink-black one: an ink
+  button is heavy on a saturated background (as in the mockup).
+- **Text on the tone uses a per-tone contrast colour at full opacity**: ink on polite, firm,
+  sarcastic and rude; white on savage/unhinged and supportive (supportive adds a 10% ink scrim, since
+  white on plain indigo is 4.47:1). This covers the countdown, caption, step label, Back and the
+  "I'm genuinely stuck" button — never `tone-supportive` or tone-coloured text, and no low-opacity
+  text (the mockup's `white/75`–`/85` text fails on the lighter tones).
+- Small text on the tone sits on a translucent pill of the opposite colour (`surface/30` under ink,
+  `ink/20` under white): the title badge and the stuck button (44 px tall).
+- Step dots use the same contrast colour; a small "‹ Back" control (44 px target) sits top-left.
+- Nag's line in the white bubble has no added quote marks (bank lines may start with a quote).
+- **Stuck state:** the bubble shows the supportive line with the neutral cue ("starts at 3:00"),
+  never "N min late"; the countdown stays (the screen still tells the time). Dots and label follow
+  the short supportive series: "Supportive · 1 of 2".
+
 ## Voice (Nag)
 Deadpan, dry, blunt. Short sentences. Targets the lateness and the situation, never
 identity, looks, or ability. Every line includes a practical cue: "leave in 4 min" for in-person
 events, "starts in 20 min" / "starting now" for online or phone events (their one polite reminder
-says nothing about leaving or travel).
+says nothing about leaving or travel). After "I'm genuinely stuck" Nag goes gentle: at most 2
+supportive lines with the start time ("starts at 3:00"), no leaving or lateness words.

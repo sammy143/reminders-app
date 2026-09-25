@@ -4,8 +4,15 @@ import {
   applyEdit,
   draftDefaults,
   draftFromAppointment,
+  hasAlarm,
+  isListed,
+  isReschedule,
   isOffsetDateTime,
+  isPlanned,
+  markLeft,
+  markStuck,
   newAppointment,
+  timingChanged,
   validateAppointmentDraft,
   type AppointmentDraft,
 } from './appointment';
@@ -19,6 +26,9 @@ const draft = (over: Partial<AppointmentDraft> = {}): AppointmentDraft => ({
   intensity: 'spicy',
   ...over,
 });
+
+const EDIT_NOW = new Date('2026-09-25T14:40:00-07:00');
+const EARLY = new Date('2026-09-25T08:00:00-07:00');
 
 const fields = {
   title: '  Dentist  ',
@@ -93,20 +103,150 @@ describe('newAppointment / applyEdit', () => {
       status: 'snoozed',
       notificationIds: ['n1'],
     };
-    const edited = applyEdit(appt, { ...fields, title: 'Gym ', inPerson: false });
+    const edited = applyEdit(appt, { ...fields, title: 'Gym ', intensity: 'mild' }, EDIT_NOW);
     expect(edited).toMatchObject({
       id: 'a1',
       status: 'snoozed',
       notificationIds: ['n1'],
       title: 'Gym',
-      inPerson: false,
+      intensity: 'mild',
     });
+  });
+
+  // `fields` starts 15:00 (−07:00), leave by 14:30, step 1 at 14:00; the edit happens at 14:40.
+  it.each(['left', 'stuck'] as const)(
+    'a small start fix after %s keeps it (the series would already be under way)',
+    (status) => {
+      const appt: Appointment = { ...newAppointment(fields, 'a1'), status };
+      const nudged = { ...fields, startsAt: '2026-09-25T15:10:00-07:00' }; // step 1 at 14:10
+      expect(isReschedule(appt, nudged, EDIT_NOW)).toBe(false);
+      expect(applyEdit(appt, nudged, EDIT_NOW).status).toBe(status);
+    },
+  );
+
+  it.each(['left', 'stuck'] as const)(
+    'moving %s to tomorrow (or later today, before its new step 1) resets it to scheduled',
+    (status) => {
+      const appt: Appointment = { ...newAppointment(fields, 'a1'), status };
+      for (const startsAt of ['2026-09-26T15:00:00-07:00', '2026-09-25T16:00:00-07:00']) {
+        expect(isReschedule(appt, { ...fields, startsAt }, EDIT_NOW)).toBe(true);
+        expect(applyEdit(appt, { ...fields, startsAt }, EDIT_NOW).status).toBe('scheduled');
+      }
+    },
+  );
+
+  it('a reschedule forgets when the user was stuck', () => {
+    const stuck: Appointment = {
+      ...newAppointment(fields, 'a1'),
+      status: 'stuck',
+      stuckAt: '2026-09-25T21:35:00.000Z',
+    };
+    const moved = applyEdit(stuck, { ...fields, startsAt: '2026-09-26T15:00:00-07:00' }, EDIT_NOW);
+    expect(moved.status).toBe('scheduled');
+    expect(moved).not.toHaveProperty('stuckAt');
+    expect(applyEdit(stuck, { ...fields, title: 'Gym' }, EDIT_NOW).stuckAt).toBe(stuck.stuckAt);
+  });
+
+  it.each(['left', 'stuck'] as const)('travel, buffer or title edits keep %s', (status) => {
+    const appt: Appointment = { ...newAppointment(fields, 'a1'), status };
+    for (const edit of [{ travelMinutes: 0 }, { bufferMinutes: 0 }, { title: 'Gym' }]) {
+      expect(applyEdit(appt, { ...fields, ...edit }, EARLY).status).toBe(status);
+    }
+    // Same instant written with another offset is not a move.
+    const same = { ...fields, startsAt: '2026-09-25T22:00:00Z' };
+    expect(applyEdit(appt, same, EARLY).status).toBe(status);
+  });
+
+  it('never resets a scheduled or snoozed appointment', () => {
+    const snoozed: Appointment = { ...newAppointment(fields, 'a1'), status: 'snoozed' };
+    const moved = { ...fields, startsAt: '2026-09-26T15:00:00-07:00' };
+    expect(applyEdit(snoozed, moved, EDIT_NOW).status).toBe('snoozed');
+    expect(isReschedule(snoozed, moved, EDIT_NOW)).toBe(false);
   });
 
   it('round-trips through draftFromAppointment', () => {
     const d = draftFromAppointment(newAppointment(fields, 'a1'));
     expect(d.startsAt.toISOString()).toBe('2026-09-25T22:00:00.000Z');
     expect(d.title).toBe('Dentist');
+  });
+});
+
+describe('timingChanged', () => {
+  const base = newAppointment(fields, 'a');
+  it.each([
+    { name: 'start', edit: { startsAt: '2026-09-25T15:30:00-07:00' }, changed: true },
+    { name: 'travel', edit: { travelMinutes: 30 }, changed: true },
+    { name: 'buffer', edit: { bufferMinutes: 0 }, changed: true },
+    { name: 'in person', edit: { inPerson: false }, changed: true },
+    { name: 'title', edit: { title: 'Renamed' }, changed: false },
+    { name: 'intensity', edit: { intensity: 'mild' as const }, changed: false },
+    {
+      name: 'same instant, other offset',
+      edit: { startsAt: '2026-09-25T22:00:00Z' },
+      changed: false,
+    },
+  ])('$name edit → $changed', ({ edit, changed }) => {
+    expect(timingChanged(base, { ...base, ...edit })).toBe(changed);
+  });
+});
+
+describe('status lifecycle (F007)', () => {
+  const at = (status: Appointment['status']): Appointment => ({
+    ...newAppointment(fields, 'a1'),
+    status,
+  });
+  const STATUSES = ['scheduled', 'snoozed', 'stuck', 'left', 'done'] as const;
+
+  it('plans notifications for scheduled, snoozed and stuck only', () => {
+    expect(STATUSES.filter((s) => isPlanned(at(s)))).toEqual(['scheduled', 'snoozed', 'stuck']);
+  });
+
+  it('lists planned and left appointments on Home', () => {
+    expect(STATUSES.filter((s) => isListed(at(s)))).toEqual([
+      'scheduled',
+      'snoozed',
+      'stuck',
+      'left',
+    ]);
+  });
+
+  it('marks a planned appointment left; anything else is returned unchanged', () => {
+    for (const s of ['scheduled', 'snoozed', 'stuck'] as const) {
+      expect(markLeft(at(s))).toEqual({ ...at(s), status: 'left' });
+    }
+    for (const s of ['left', 'done'] as const) {
+      const appt = at(s);
+      expect(markLeft(appt)).toBe(appt);
+    }
+  });
+
+  it('marks a scheduled or snoozed appointment stuck; anything else is returned unchanged', () => {
+    for (const s of ['scheduled', 'snoozed'] as const) {
+      expect(markStuck(at(s), EDIT_NOW)).toEqual({
+        ...at(s),
+        status: 'stuck',
+        stuckAt: EDIT_NOW.toISOString(),
+      });
+    }
+    for (const s of ['stuck', 'left', 'done'] as const) {
+      const appt = at(s);
+      expect(markStuck(appt, EDIT_NOW)).toBe(appt);
+    }
+  });
+
+  it('leaves an event without an alarm (not in person) unchanged', () => {
+    const online: Appointment = { ...at('scheduled'), inPerson: false };
+    expect(markLeft(online)).toBe(online);
+    expect(markStuck(online, EDIT_NOW)).toBe(online);
+    expect(hasAlarm(online)).toBe(false);
+    expect(hasAlarm(at('scheduled'))).toBe(true);
+  });
+
+  it('does not mutate its input', () => {
+    const appt = at('scheduled');
+    markLeft(appt);
+    markStuck(appt, EDIT_NOW);
+    expect(appt.status).toBe('scheduled');
   });
 });
 

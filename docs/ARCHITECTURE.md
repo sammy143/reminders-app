@@ -41,6 +41,11 @@ Styling: NativeWind classes in `ui/` and `app/`, tokens from `docs/design/DESIGN
   module, or the package root, if a relative dependency resolves to no file, or if the module
   no longer exists. `TRACE_NOTIFICATIONS=1 node scripts/check-architecture.mjs` prints the graphs.
   The adapter loads them lazily in a try/catch; on failure notifications are `unavailable`.
+- Route literals in `src/app/` (`router.push('/…')`, `pathname: '/…'`, `href="/…"`,
+  `dismissTo`) must match a route file under `src/app/`. This replaces typed-route checking in
+  the gate: `npm run typecheck` uses `tsconfig.typecheck.json`, which leaves out Expo's generated
+  `.expo/types` and `expo-env.d.ts`. Those files are gitignored and go stale between dev-server runs, so
+  including them made the gate depend on local state. Editors still use `tsconfig.json`, typed routes included.
 - Side-effect imports (`import 'x'`) count as imports for every rule.
 
 Failure messages explain the fix. If a rule is wrong, change the rule and this doc in the

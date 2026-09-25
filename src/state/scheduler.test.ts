@@ -106,7 +106,12 @@ describe('syncNotifications', () => {
 describe('syncNotifications with other kinds and bad data', () => {
   it('leaves notifications outside the series namespace alone', async () => {
     const port = createFakeNotifications();
-    port.pending.set('snooze:a:1', { id: 'snooze:a:1', at: at(5), body: 'Snoozed.' });
+    port.pending.set('snooze:a:1', {
+      id: 'snooze:a:1',
+      at: at(5),
+      body: 'Snoozed.',
+      category: null,
+    });
     await syncNotifications(port, [appt('a', 120)], T0);
     await syncNotifications(port, [], T0);
     expect(port.keys()).toEqual(['snooze:a:1']);

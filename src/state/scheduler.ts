@@ -1,9 +1,10 @@
 import {
   diffSchedule,
+  parseSeriesKey,
   planNotifications,
   type SkippedAppointment,
 } from '@/domain/notificationPlan';
-import { isActive } from '@/domain/today';
+import { isPlanned } from '@/domain/appointment';
 import type { NotificationPermission, NotificationsPort } from '@/services/notificationsPort';
 import type { Appointment } from '@/types';
 
@@ -59,8 +60,11 @@ export async function syncNotifications(
 ): Promise<SyncResult> {
   const scheduled = await port.listScheduled();
   const { notifications: planned, skipped } = planNotifications(appointments, now, justSaved);
+  // A stuck appointment's imminent ladder nag is cancelled too: it would be an insult (F007).
   const keepImminentFor = new Set(
-    appointments.filter((a) => isActive(a) && !justSaved.has(a.id)).map((a) => a.id),
+    appointments
+      .filter((a) => isPlanned(a) && a.status !== 'stuck' && !justSaved.has(a.id))
+      .map((a) => a.id),
   );
   const { toCancel, toSchedule } = diffSchedule(planned, scheduled, { now, keepImminentFor });
 
@@ -79,6 +83,24 @@ export async function syncNotifications(
   let count = 0;
   for (const p of toSchedule) count += await attempt(() => port.schedule(p));
   return { scheduled: count, cancelled, skipped, errors };
+}
+
+/**
+ * Removes an appointment's delivered series notifications from the tray (after "I've left", its
+ * old nags shouldn't linger in Notification Centre). Never rejects; failures are logged.
+ */
+export async function dismissDelivered(
+  port: NotificationsPort,
+  appointmentId: string,
+): Promise<void> {
+  try {
+    const mine = (await port.listPresented()).filter(
+      (id) => parseSeriesKey(id)?.appointmentId === appointmentId,
+    );
+    for (const id of mine) await port.dismiss(id);
+  } catch (error) {
+    console.warn('Could not clear delivered notifications', error);
+  }
 }
 
 export interface SyncQueue {

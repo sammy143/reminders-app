@@ -1,5 +1,6 @@
 import type { Appointment } from '@/types';
 
+import { BANK } from './lines/bank';
 import { cardStatus, groupUpcoming, nextNagLine, previewLine, prunePast } from './today';
 
 const appt = (over: Partial<Appointment> = {}): Appointment => ({
@@ -49,17 +50,32 @@ describe('groupUpcoming', () => {
     ]);
   });
 
-  it('shows only scheduled or snoozed appointments', () => {
+  it('shows scheduled, snoozed, stuck and left appointments, not done ones', () => {
     const list = [
       appt({ id: 'scheduled', startsAt: iso(local(24, 18)) }),
       appt({ id: 'snoozed', status: 'snoozed', startsAt: iso(local(24, 19)) }),
       appt({ id: 'left', status: 'left', startsAt: iso(local(24, 20)) }),
       appt({ id: 'done', status: 'done', startsAt: iso(local(24, 21)) }),
+      appt({ id: 'stuck', status: 'stuck', startsAt: iso(local(24, 22)) }),
     ];
     expect(groupUpcoming(list, now)[0].appointments.map((a) => a.id)).toEqual([
       'scheduled',
       'snoozed',
+      'left',
+      'stuck',
     ]);
+  });
+
+  it('counts only planned appointments that have not started as remaining (not left ones)', () => {
+    const list = [
+      appt({ id: 'left', status: 'left', startsAt: iso(local(24, 18)) }),
+      appt({ id: 'stuck', status: 'stuck', startsAt: iso(local(24, 19)) }),
+      appt({ id: 'scheduled', startsAt: iso(local(24, 20)) }),
+      appt({ id: 'past', startsAt: iso(local(24, 9)) }),
+    ];
+    const [today] = groupUpcoming(list, now);
+    expect(today.appointments).toHaveLength(4);
+    expect(today.remaining).toBe(2);
   });
 
   // Jest runs in America/Los_Angeles (jest.global-setup.js); DST ends there on 2026-11-01.
@@ -103,9 +119,20 @@ describe('prunePast', () => {
 });
 
 describe('cardStatus', () => {
-  it('is done for an appointment that is no longer active', () => {
+  it('is done, marked left, after "I\'ve left"', () => {
     const s = cardStatus(appt({ status: 'left' }), new Date('2026-09-24T13:48:00Z'));
-    expect(s).toMatchObject({ cue: null, tone: 'done' });
+    expect(s).toMatchObject({ cue: null, tone: 'done', mark: 'left' });
+  });
+
+  it('shows the neutral start cue in the supportive tone, marked stuck, after "I\'m genuinely stuck"', () => {
+    const s = cardStatus(appt({ status: 'stuck' }), new Date('2026-09-24T14:33:00Z'));
+    // 15:00Z is 8:00 in Los Angeles (Jest's zone): the neutral cue, not "3 min late".
+    expect(s).toMatchObject({ cue: 'starts at 8:00', tone: 'supportive', mark: 'stuck' });
+  });
+
+  it('has no mark otherwise', () => {
+    expect(cardStatus(appt(), new Date('2026-09-24T14:33:00Z')).mark).toBeNull();
+    expect(cardStatus(appt({ status: 'done' }), new Date('2026-09-24T14:33:00Z')).mark).toBeNull();
   });
 
   // leaveBy = 15:00 − 30 min = 14:30Z
@@ -150,8 +177,20 @@ describe('nextNagLine', () => {
     expect(nextNagLine([near, far], at)?.appointmentId).toBe('far');
   });
 
-  it('ignores appointments that are no longer active', () => {
-    expect(nextNagLine([appt({ status: 'left' })], now)).toBeNull();
+  it('ignores appointments that are left or done', () => {
+    expect(nextNagLine([appt({ status: 'left' }), appt({ status: 'done' })], now)).toBeNull();
+  });
+
+  it('says the next supportive nag for a stuck appointment, with the neutral cue', () => {
+    // Stuck at 14:25: supportive nags at 14:30 (step 3) and 14:33 (step 4), nothing after.
+    const stuck = appt({ status: 'stuck', stuckAt: now.toISOString() });
+    const line = nextNagLine([stuck], now);
+    expect(line).toMatchObject({ tone: 'supportive' });
+    expect(line?.at.toISOString()).toBe('2026-09-24T14:30:00.000Z');
+    // 15:00Z is 8:00 in Los Angeles (Jest's zone).
+    const templates = BANK.supportive.spicy.map((t) => t.replace('{cue}', 'starts at 8:00'));
+    expect(templates.map((t) => t.toLowerCase())).toContain(line?.text.toLowerCase());
+    expect(nextNagLine([stuck], new Date('2026-09-24T14:34:00Z'))).toBeNull();
   });
 
   it('uses the earliest appointment that still has a step', () => {

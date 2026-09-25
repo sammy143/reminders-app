@@ -33,7 +33,7 @@ export function NagBubble({ tone, heading, aside, line, tail = 'left' }: NagBubb
             </Text>
             {aside ? <Text className="text-label text-ink-muted">{aside}</Text> : null}
           </View>
-          <Text className="text-body text-ink">“{line}”</Text>
+          <Text className="text-body text-ink">{line}</Text>
         </View>
       </View>
     </View>

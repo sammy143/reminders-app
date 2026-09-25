@@ -32,6 +32,30 @@ jest.mock('expo-notifications/build/NotificationsHandler', () => ({
 jest.mock('expo-notifications/build/setNotificationChannelAsync', () => ({
   setNotificationChannelAsync: jest.fn(async () => null),
 }));
+jest.mock('expo-notifications/build/setNotificationCategoryAsync', () => ({
+  setNotificationCategoryAsync: jest.fn(async (identifier: string, actions: unknown[]) => ({
+    identifier,
+    actions,
+  })),
+}));
+jest.mock('expo-notifications/build/getNotificationCategoriesAsync', () => ({
+  getNotificationCategoriesAsync: jest.fn(async () => [
+    { identifier: 'nagSeries', actions: [] },
+    { identifier: 'nagSupportive', actions: [] },
+  ]),
+}));
+jest.mock('expo-notifications/build/NotificationsEmitter', () => ({
+  DEFAULT_ACTION_IDENTIFIER: 'expo.modules.notifications.actions.DEFAULT',
+  addNotificationResponseReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
+  getLastNotificationResponse: jest.fn(() => null),
+  clearLastNotificationResponse: jest.fn(),
+}));
+jest.mock('expo-notifications/build/dismissNotificationAsync', () => ({
+  dismissNotificationAsync: jest.fn(async () => {}),
+}));
+jest.mock('expo-notifications/build/getPresentedNotificationsAsync', () => ({
+  getPresentedNotificationsAsync: jest.fn(async () => []),
+}));
 // Enum values copied from expo-notifications' .d.ts files.
 jest.mock('expo-notifications/build/Notifications.types', () => ({
   SchedulableTriggerInputTypes: { DATE: 'date' },

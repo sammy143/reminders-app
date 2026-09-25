@@ -1,9 +1,11 @@
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { alarmUnderway } from '@/domain/alarm';
 import { cardStatus, groupUpcoming, nextNagLine, type DayGroup } from '@/domain/today';
 import { useAppointments } from '@/state/appointments';
 import { useNow } from '@/state/useNow';
+import type { Appointment } from '@/types';
 
 import { AppointmentCard } from './components/AppointmentCard';
 import { Nag } from './components/Nag';
@@ -16,11 +18,14 @@ export const NOTIFICATIONS_OFF = 'Notifications are off. Nag can’t reach you.'
 
 interface HomeScreenProps {
   onAdd: () => void;
+  /** Opens the editor. */
   onOpen: (id: string) => void;
+  /** Opens the alarm screen: for a card whose series is under way (`alarmUnderway`). */
+  onAlarm: (id: string) => void;
 }
 
 /** Today list (docs/design/screens/home.png; streak, tabs and settings are later features). */
-export function HomeScreen({ onAdd, onOpen }: HomeScreenProps) {
+export function HomeScreen({ onAdd, onOpen, onAlarm }: HomeScreenProps) {
   const now = useNow(
     15_000,
     useAppointments((s) => s.clock),
@@ -72,7 +77,12 @@ export function HomeScreen({ onAdd, onOpen }: HomeScreenProps) {
           <Text className="text-body text-ink-muted">Nothing to nag you about yet.</Text>
         ) : null}
         {groups.map((group) => (
-          <DaySection key={group.day.toISOString()} group={group} now={now} onOpen={onOpen} />
+          <DaySection
+            key={group.day.toISOString()}
+            group={group}
+            now={now}
+            onOpen={(a) => (alarmUnderway(a, now) ? onAlarm : onOpen)(a.id)}
+          />
         ))}
       </ScrollView>
 
@@ -88,7 +98,7 @@ export function HomeScreen({ onAdd, onOpen }: HomeScreenProps) {
   );
 }
 
-function DaySection(props: { group: DayGroup; now: Date; onOpen: (id: string) => void }) {
+function DaySection(props: { group: DayGroup; now: Date; onOpen: (appt: Appointment) => void }) {
   const { group, now } = props;
   const title =
     group.daysFromToday === 0
@@ -112,7 +122,7 @@ function DaySection(props: { group: DayGroup; now: Date; onOpen: (id: string) =>
           key={a.id}
           appointment={a}
           status={cardStatus(a, now)}
-          onPress={() => props.onOpen(a.id)}
+          onPress={() => props.onOpen(a)}
         />
       ))}
     </View>

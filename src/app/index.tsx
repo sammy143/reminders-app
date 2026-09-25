@@ -7,6 +7,7 @@ export default function Index() {
     <HomeScreen
       onAdd={() => router.push('/appointment/new')}
       onOpen={(id) => router.push({ pathname: '/appointment/[id]', params: { id } })}
+      onAlarm={(id) => router.push({ pathname: '/alarm/[id]', params: { id } })}
     />
   );
 }

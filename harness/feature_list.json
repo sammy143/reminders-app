@@ -75,8 +75,8 @@
         "Data persists across app reload (web and Expo Go)",
         "bash scripts/check.sh passes"
       ],
-      "passes": false,
-      "notes": "pending device check (deferred by user to run with F006 device checks). Web verified: create/edit/delete + reload."
+      "passes": true,
+      "notes": "device-verified on iOS 2026-09-25; Android untested"
     },
     {
       "id": "F006",
@@ -89,8 +89,8 @@
         "Manual: event 2 min out on a real phone via Expo Go produces escalating notifications",
         "bash scripts/check.sh passes"
       ],
-      "passes": false,
-      "notes": "pending device check (Expo Go, with F005). Automated steps verified: save/edit/delete sync, next-2 cap, foreground top-up, fake-port tests; Android Expo Go import crash and 13+ permission fixed."
+      "passes": true,
+      "notes": "device-verified on iOS 2026-09-25; Android untested"
     },
     {
       "id": "F007",
@@ -102,8 +102,8 @@
         "Manual check on a real phone",
         "bash scripts/check.sh passes"
       ],
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "device-verified on iOS incl. notification buttons; Android untested"
     },
     {
       "id": "F008",

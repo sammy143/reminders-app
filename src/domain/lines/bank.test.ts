@@ -8,6 +8,14 @@ const INTENSITIES: Intensity[] = ['mild', 'spicy', 'savage'];
 const LADDER: Tone[] = ['polite', 'firm', 'sarcastic', 'rude', 'savage', 'unhinged'];
 const all = Object.values(BANK).flatMap((cells) => Object.values(cells).flat());
 const CUE_FORMS = ['leave in 5 min', 'leave now', '5 min late', 'starts in 5 min', 'starting now'];
+// Supportive lines (after "I'm genuinely stuck") only ever carry the neutral start-time cue.
+const SUPPORTIVE_CUE = 'starts at 3:00';
+const LADDER_LINES = (
+  ['polite', 'firm', 'sarcastic', 'rude', 'savage', 'unhinged'] as const
+).flatMap((tone) => INTENSITIES.flatMap((intensity) => BANK[tone][intensity]));
+const SUPPORTIVE_LINES = INTENSITIES.flatMap((intensity) => BANK.supportive[intensity]);
+// No countdown or lateness in supportive text: the user is stuck, not slacking.
+const LATENESS_WORDS = /\b(leav\w*|late\w*|hurry\w*|now|min(ute)?s?|overdue|behind)\b/i;
 // Words any cue form uses (leave and start families). A template that uses them too reads as
 // "Go now. Leave now."
 const CUE_WORDS = /\bleav\w*|\bstart\w*|\bnow\b|\blate\w*|\bmin(ute)?s?\b/gi;
@@ -77,13 +85,24 @@ describe('BANK', () => {
     expect(all.filter((line) => banned.test(line))).toEqual([]);
   });
 
-  it('reads well with every cue form: no cue word repeated outside the cue', () => {
-    const bad = all.flatMap((template) =>
+  it('reads well with every ladder cue form: no cue word repeated outside the cue', () => {
+    const bad = LADDER_LINES.flatMap((template) =>
       CUE_FORMS.map((cue) => fillCue(template, cue)).filter(
         (text, i) => countCueWords(text) !== countCueWords(CUE_FORMS[i]),
       ),
     );
     expect(bad).toEqual([]);
+  });
+
+  it('reads well with the neutral supportive cue: no cue word repeated outside it', () => {
+    const bad = SUPPORTIVE_LINES.map((t) => fillCue(t, SUPPORTIVE_CUE)).filter(
+      (text) => countCueWords(text) !== countCueWords(SUPPORTIVE_CUE),
+    );
+    expect(bad).toEqual([]);
+  });
+
+  it('keeps supportive lines free of leaving, lateness or countdown words', () => {
+    expect(SUPPORTIVE_LINES.filter((line) => LATENESS_WORDS.test(line))).toEqual([]);
   });
 
   it('keeps polite and firm lines neutral about sequence and timing', () => {

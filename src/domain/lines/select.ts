@@ -1,8 +1,8 @@
-import type { Appointment, SeriesMessage, SeriesStep, StepNumber } from '@/types';
+import type { Appointment, SeriesMessage, SeriesStep, StepNumber, SupportiveStep } from '@/types';
 
 import { scheduledTone } from '../series';
 import { BANK } from './bank';
-import { formatCue, formatStartCue } from './cue';
+import { formatCue, formatStartCue, formatStartsAtCue } from './cue';
 
 export const CUE_PLACEHOLDER = '{cue}';
 
@@ -20,28 +20,50 @@ export type LineInput = Pick<Appointment, 'id' | 'intensity' | 'inPerson' | 'sta
  * depends only on (id, step, tone, intensity), never on array position or `now`, and rebuilding
  * after steps drop out keeps each surviving step's line.
  *
- * Cue: in-person → leave cue from `minutesFromLeaveBy` ("leave in 4 min"); otherwise → start cue
- * from `startsAt − at` ("starts in 20 min"), since there is nothing to leave for.
- * Throws RangeError if a non-in-person `startsAt` doesn't parse.
+ * Supportive steps (`toSupportive`, after "I'm genuinely stuck") take the supportive cell with
+ * `k = step − 1`: each cell has at least 6 lines, so the 6 steps never share one (F004 note for F007).
+ *
+ * Cue: supportive → the neutral start time ("starts at 3:00"), never a countdown or lateness;
+ * in-person → leave cue from `minutesFromLeaveBy` ("leave in 4 min"); otherwise → start cue from
+ * `startsAt − at` ("starts in 20 min"), since there is nothing to leave for.
+ * Throws RangeError if `startsAt` doesn't parse where the cue needs it.
  */
-export function withLines(series: readonly SeriesStep[], appt: LineInput): SeriesMessage[] {
+export function withLines<S extends SeriesStep | SupportiveStep>(
+  series: readonly S[],
+  appt: LineInput,
+): SeriesMessage<S>[] {
   const seed = stableHash(appt.id);
-  const startsAtMs = appt.inPerson ? NaN : Date.parse(appt.startsAt);
-  if (!appt.inPerson && Number.isNaN(startsAtMs)) {
+  const startsAtMs = Date.parse(appt.startsAt);
+  const needsStart = !appt.inPerson || series.some((s) => s.tone === 'supportive');
+  if (needsStart && Number.isNaN(startsAtMs)) {
     throw new RangeError(`Invalid startsAt: "${appt.startsAt}"`);
   }
-  const cueFor = (s: SeriesStep) =>
-    appt.inPerson
-      ? formatCue(s.minutesFromLeaveBy)
-      : formatStartCue((startsAtMs - s.at.getTime()) / MS_PER_MINUTE);
+  const cueFor = (s: S) =>
+    s.tone === 'supportive'
+      ? formatStartsAtCue(new Date(startsAtMs))
+      : appt.inPerson
+        ? formatCue(s.minutesFromLeaveBy)
+        : formatStartCue((startsAtMs - s.at.getTime()) / MS_PER_MINUTE);
   return series.map((s) => {
-    const k = STEPS.filter(
-      (earlier) => earlier < s.step && scheduledTone(earlier, appt.intensity) === s.tone,
-    ).length;
+    const k =
+      s.tone === 'supportive'
+        ? s.step - 1
+        : STEPS.filter(
+            (earlier) => earlier < s.step && scheduledTone(earlier, appt.intensity) === s.tone,
+          ).length;
     const cell = BANK[s.tone][appt.intensity];
     const template = cell[(seed + k) % cell.length];
     return { ...s, text: fillCue(template, cueFor(s)) };
   });
+}
+
+/**
+ * Supportive versions of series steps ("I'm genuinely stuck", PLAN rule 5): every step keeps its
+ * step number, time and offset, and switches to the supportive tone (whose cue is the neutral
+ * start time). Which steps stay is `supportiveSeries`' job (stuck.ts).
+ */
+export function toSupportive(series: readonly SeriesStep[]): SupportiveStep[] {
+  return series.map((s) => ({ ...s, tone: 'supportive' }));
 }
 
 /** Replaces `{cue}`, capitalising the cue at the start of the text or after `.`, `!` or `?`. */

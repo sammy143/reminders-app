@@ -4,14 +4,15 @@ import {
   CHANNEL_ID,
   createNotificationsPort,
   loadNotificationsApi,
-  toPermission,
-  toScheduled,
+  toResponse,
   type NotificationsApi,
 } from './notifications';
 import type { NotificationsPort } from './notificationsPort';
 
 const AT = new Date('2026-09-25T15:00:00-07:00');
+const DEFAULT = 'expo.modules.notifications.actions.DEFAULT';
 const IOS_GRANTED_LIKE = [3, 4];
+const granted = { granted: true, status: 'granted', canAskAgain: true, expires: 'never' };
 
 const planned: PlannedNotification = {
   key: 'series:a1:3',
@@ -20,33 +21,39 @@ const planned: PlannedNotification = {
   at: AT,
   title: 'Nag',
   body: 'Leave now.',
+  category: 'nagSeries',
 };
 
-type Status = Parameters<typeof toPermission>[0];
-const status = (s: Partial<Record<keyof Status, unknown>>) =>
-  ({ granted: false, status: 'undetermined', canAskAgain: true, expires: 'never', ...s }) as Status;
-
-type Request = Parameters<typeof toScheduled>[0];
-const request = (fields: { trigger?: unknown; data?: unknown; body?: string | null }) =>
+type ExpoResponse = Parameters<typeof toResponse>[0];
+const expoResponse = (actionIdentifier: string) =>
   ({
-    identifier: 'series:a1:3',
-    content: {
-      title: 'Nag',
-      body: 'body' in fields ? fields.body : 'Leave now.',
-      data: fields.data,
-    },
-    trigger: fields.trigger ?? null,
-  }) as unknown as Request;
+    actionIdentifier,
+    notification: { date: 1000, request: { identifier: 'series:a1:3' } },
+  }) as unknown as ExpoResponse;
 
 const fakeApi = (): jest.Mocked<NotificationsApi> =>
   ({
     scheduleNotificationAsync: jest.fn(async () => 'series:a1:3'),
     cancelScheduledNotificationAsync: jest.fn(async () => {}),
     getAllScheduledNotificationsAsync: jest.fn(async () => []),
-    getPermissionsAsync: jest.fn(async () => status({ granted: true, status: 'granted' })),
-    requestPermissionsAsync: jest.fn(async () => status({ granted: true, status: 'granted' })),
+    getPermissionsAsync: jest.fn(async () => granted),
+    requestPermissionsAsync: jest.fn(async () => granted),
     setNotificationHandler: jest.fn(),
     setNotificationChannelAsync: jest.fn(async () => null),
+    setNotificationCategoryAsync: jest.fn(async (identifier: string) => ({
+      identifier,
+      actions: [],
+    })),
+    getNotificationCategoriesAsync: jest.fn(async () => [
+      { identifier: 'nagSeries', actions: [] },
+      { identifier: 'nagSupportive', actions: [] },
+    ]),
+    addNotificationResponseReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
+    getLastNotificationResponse: jest.fn(() => null),
+    clearLastNotificationResponse: jest.fn(),
+    dismissNotificationAsync: jest.fn(async () => {}),
+    getPresentedNotificationsAsync: jest.fn(async () => []),
+    DEFAULT_ACTION: DEFAULT,
     DATE: 'date',
     HIGH_IMPORTANCE: 6,
     IOS_GRANTED_LIKE,
@@ -61,7 +68,21 @@ describe('loadNotificationsApi', () => {
       jest.requireMock('expo-notifications/build/scheduleNotificationAsync')
         .scheduleNotificationAsync,
     );
-    expect(api).toMatchObject({ DATE: 'date', HIGH_IMPORTANCE: 6, IOS_GRANTED_LIKE: [3, 4] });
+    expect(api).toMatchObject({
+      DATE: 'date',
+      HIGH_IMPORTANCE: 6,
+      IOS_GRANTED_LIKE: [3, 4],
+      DEFAULT_ACTION: DEFAULT,
+    });
+    expect(api?.setNotificationCategoryAsync).toBe(
+      jest.requireMock('expo-notifications/build/setNotificationCategoryAsync')
+        .setNotificationCategoryAsync,
+    );
+    const emitter = jest.requireMock('expo-notifications/build/NotificationsEmitter');
+    expect(api?.addNotificationResponseReceivedListener).toBe(
+      emitter.addNotificationResponseReceivedListener,
+    );
+    expect(api?.getLastNotificationResponse).toBe(emitter.getLastNotificationResponse);
     expect(handler.setNotificationHandler).toHaveBeenCalledTimes(1);
     const behaviour = handler.setNotificationHandler.mock.calls[0][0].handleNotification();
     return expect(behaviour).resolves.toMatchObject({
@@ -98,6 +119,10 @@ describe('loadNotificationsApi', () => {
     await expect(port?.listScheduled()).resolves.toEqual([]);
     await expect(port?.schedule(planned)).resolves.toBe(planned.key);
     await expect(port?.cancel('x')).resolves.toBeUndefined();
+    await expect(port?.dismiss('x')).resolves.toBeUndefined();
+    await expect(port?.listPresented()).resolves.toEqual([]);
+    expect(port?.takeLastResponse()).toBeNull();
+    port?.onResponse(() => {})();
     expect(warn).toHaveBeenCalledTimes(1);
     warn.mockRestore();
   });
@@ -109,9 +134,24 @@ describe('notifications port', () => {
     await createNotificationsPort(api).schedule(planned);
     expect(api.scheduleNotificationAsync).toHaveBeenCalledWith({
       identifier: 'series:a1:3',
-      content: { title: 'Nag', body: 'Leave now.', data: { at: AT.getTime() } },
+      content: {
+        title: 'Nag',
+        body: 'Leave now.',
+        data: { at: AT.getTime(), category: 'nagSeries' },
+        categoryIdentifier: 'nagSeries',
+      },
       trigger: { type: 'date', date: AT, channelId: CHANNEL_ID },
     });
+  });
+
+  it('schedules a reminder without buttons with no category', async () => {
+    const api = fakeApi();
+    await createNotificationsPort(api).schedule({ ...planned, category: null });
+    expect(api.scheduleNotificationAsync).toHaveBeenCalledWith(
+      expect.objectContaining({
+        content: { title: 'Nag', body: 'Leave now.', data: { at: AT.getTime() } },
+      }),
+    );
   });
 
   it('creates the high-importance channel once', async () => {
@@ -126,73 +166,111 @@ describe('notifications port', () => {
     });
   });
 
+  it('registers both button categories once, every button opening the app', async () => {
+    const api = fakeApi();
+    const port = createNotificationsPort(api);
+    await port.setup();
+    await port.setup();
+    const open = { opensAppToForeground: true };
+    expect(api.setNotificationCategoryAsync.mock.calls).toEqual([
+      [
+        'nagSeries',
+        [
+          { identifier: 'left', buttonTitle: 'I’ve left', options: open },
+          { identifier: 'stuck', buttonTitle: 'I’m genuinely stuck', options: open },
+        ],
+      ],
+      ['nagSupportive', [{ identifier: 'left', buttonTitle: 'I’ve left', options: open }]],
+    ]);
+  });
+
+  it('keeps going without buttons when categories fail, and retries on the next setup', async () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const api = fakeApi();
+    api.setNotificationCategoryAsync.mockRejectedValueOnce(new Error('no categories'));
+    const port = createNotificationsPort(api);
+    await expect(port.setup()).resolves.toBeUndefined();
+    expect(warn).toHaveBeenCalledWith('Notification buttons are unavailable', expect.any(Error));
+    await port.setup();
+    // The first attempt stopped at its failing first call; the retry registers both.
+    expect(api.setNotificationCategoryAsync).toHaveBeenCalledTimes(3);
+    warn.mockRestore();
+  });
+
+  it('turns responses into our shape: a plain tap is "open"', () => {
+    const api = fakeApi();
+    const port = createNotificationsPort(api);
+    const listener = jest.fn();
+    const unsubscribe = port.onResponse(listener);
+    const forward = api.addNotificationResponseReceivedListener.mock.calls[0][0];
+    forward(expoResponse('left'));
+    forward(expoResponse(DEFAULT));
+    expect(listener.mock.calls).toEqual([
+      [{ responseId: 'series:a1:3|1000|left', notificationId: 'series:a1:3', actionId: 'left' }],
+      [{ responseId: 'series:a1:3|1000|open', notificationId: 'series:a1:3', actionId: 'open' }],
+    ]);
+    unsubscribe();
+    const subscription = api.addNotificationResponseReceivedListener.mock.results[0].value;
+    expect(subscription.remove).toHaveBeenCalledTimes(1);
+  });
+
+  it('clears the last response as the listener handles one, so iOS never hands it out again', () => {
+    const api = fakeApi();
+    createNotificationsPort(api).onResponse(() => {});
+    const forward = api.addNotificationResponseReceivedListener.mock.calls[0][0];
+    forward(expoResponse('left'));
+    expect(api.clearLastNotificationResponse).toHaveBeenCalledTimes(1);
+  });
+
+  it('lists the identifiers of presented notifications', async () => {
+    const api = fakeApi();
+    api.getPresentedNotificationsAsync.mockResolvedValueOnce([
+      { request: { identifier: 'series:a1:1' } },
+      { request: { identifier: 'other' } },
+    ]);
+    expect(await createNotificationsPort(api).listPresented()).toEqual(['series:a1:1', 'other']);
+  });
+
+  it('hands out the cold-start response once, clearing it', () => {
+    const api = fakeApi();
+    api.getLastNotificationResponse.mockReturnValueOnce(expoResponse('stuck'));
+    const port = createNotificationsPort(api);
+    expect(port.takeLastResponse()).toMatchObject({ actionId: 'stuck' });
+    expect(api.clearLastNotificationResponse).toHaveBeenCalledTimes(1);
+    expect(port.takeLastResponse()).toBeNull();
+  });
+
+  it('reads no cold-start response when the native call throws', () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const api = fakeApi();
+    api.getLastNotificationResponse.mockImplementationOnce(() => {
+      throw new Error('unavailable');
+    });
+    expect(createNotificationsPort(api).takeLastResponse()).toBeNull();
+    expect(warn).toHaveBeenCalledTimes(1);
+    warn.mockRestore();
+  });
+
+  it('dismisses a delivered notification by identifier', async () => {
+    const api = fakeApi();
+    await createNotificationsPort(api).dismiss('series:a1:3');
+    expect(api.dismissNotificationAsync).toHaveBeenCalledWith('series:a1:3');
+  });
+
   it('lists and cancels by identifier', async () => {
     const api = fakeApi();
     api.getAllScheduledNotificationsAsync.mockResolvedValueOnce([
-      request({ data: { at: AT.getTime() } }),
+      {
+        identifier: 'series:a1:3',
+        content: { title: 'Nag', body: 'Leave now.', data: { at: AT.getTime() } },
+        trigger: null,
+      } as never,
     ]);
     const port = createNotificationsPort(api);
-    expect(await port.listScheduled()).toEqual([{ id: 'series:a1:3', at: AT, body: 'Leave now.' }]);
+    expect(await port.listScheduled()).toEqual([
+      { id: 'series:a1:3', at: AT, body: 'Leave now.', category: null },
+    ]);
     await port.cancel('series:a1:3');
     expect(api.cancelScheduledNotificationAsync).toHaveBeenCalledWith('series:a1:3');
-  });
-});
-
-describe('toPermission', () => {
-  it.each([
-    { name: 'granted', input: status({ granted: true, status: 'granted' }), expected: 'granted' },
-    {
-      name: 'iOS provisional',
-      input: status({ ios: { status: 3 }, canAskAgain: false }),
-      expected: 'granted',
-    },
-    { name: 'iOS never asked', input: status({ ios: { status: 0 } }), expected: 'undetermined' },
-    {
-      name: 'iOS denied',
-      input: status({ status: 'denied', canAskAgain: false, ios: { status: 1 } }),
-      expected: 'denied',
-    },
-    // Android 13+ (API 33) shapes: before the first prompt it already says denied.
-    {
-      name: 'API 33 before the first prompt, or after one no',
-      input: status({ status: 'denied', canAskAgain: true, android: { importance: 3 } }),
-      expected: 'undetermined',
-    },
-    {
-      name: 'API 33 after "don\'t ask again"',
-      input: status({ status: 'denied', canAskAgain: false, android: { importance: 3 } }),
-      expected: 'denied',
-    },
-    {
-      name: 'API 33 allowed',
-      input: status({ status: 'granted', granted: true, android: { importance: 3 } }),
-      expected: 'granted',
-    },
-  ])('maps $name to $expected', ({ input, expected }) => {
-    expect(toPermission(input, IOS_GRANTED_LIKE)).toBe(expected);
-  });
-});
-
-describe('toScheduled', () => {
-  it('takes the time from an Android DATE trigger first', () => {
-    const later = AT.getTime() + 60_000;
-    const read = toScheduled(
-      request({ trigger: { type: 'date', value: later, repeats: false }, data: { at: 1 } }),
-    );
-    expect(read).toEqual({ id: 'series:a1:3', at: new Date(later), body: 'Leave now.' });
-  });
-
-  it('falls back to data.at when iOS reports a relative interval', () => {
-    const read = toScheduled(
-      request({ trigger: { type: 'timeInterval', seconds: 120 }, data: { at: AT.getTime() } }),
-    );
-    expect(read.at).toEqual(AT);
-  });
-
-  it('keeps the identifier but marks the time unknown when neither says', () => {
-    const read = toScheduled(request({ data: undefined, body: null }));
-    expect(read.id).toBe('series:a1:3');
-    expect(Number.isNaN(read.at.getTime())).toBe(true);
-    expect(read.body).toBe('');
   });
 });

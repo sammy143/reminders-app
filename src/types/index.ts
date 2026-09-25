@@ -26,6 +26,11 @@ export interface Appointment {
   intensity: Intensity;
   status: AppointmentStatus;
   /**
+   * When "I'm genuinely stuck" was pressed (ISO 8601): the supportive series is the next 2 steps
+   * after it, fixed from then on. Set by `markStuck`, cleared by a reschedule.
+   */
+  stuckAt?: string;
+  /**
    * Unused, always `[]`: F006 reconciles against the OS's scheduled list by key instead
    * (docs/exec-plans F006 "Decisions"). Remove with the next storage migration (docs/tech-debt.md).
    */
@@ -61,7 +66,15 @@ export interface SeriesStep {
 }
 
 /**
+ * A series step after "I'm genuinely stuck" (F007): same step, time and offset, supportive tone.
+ * `toSupportive` in `src/domain/lines/select.ts` makes these.
+ */
+export type SupportiveStep = Omit<SeriesStep, 'tone'> & { tone: 'supportive' };
+
+/**
  * A series step with its line from the bank (F004): `withLines` in `src/domain/lines/select.ts`.
  * `text` always contains the practical cue ("leave in 4 min"). Derived, never persisted.
  */
-export type SeriesMessage = SeriesStep & { text: string };
+export type SeriesMessage<S extends SeriesStep | SupportiveStep = SeriesStep> = S & {
+  text: string;
+};

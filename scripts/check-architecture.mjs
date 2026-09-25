@@ -133,6 +133,22 @@ function checkNotificationsImport(file, rel, spec) {
   if (forbidden.length) fail(file, `imports '${spec}', whose require graph reaches ${forbidden.join(', ')}. Pick a module that doesn't (docs/ARCHITECTURE.md).`);
 }
 
+// Route literals in src/app/ must name a real route file. `npm run typecheck` ignores Expo's
+// generated .expo/types (stale copies broke it), so this is what catches a mistyped or deleted route.
+const ROUTE_RE = /(?:\bpathname\s*:\s*|\bhref\s*=\s*\{?\s*|\brouter\.(?:push|replace|navigate|dismissTo)\(\s*)(['"])(\/[^'"?#]*)\1/g;
+const APP_DIR = join(SRC, 'app');
+function routeExists(route) {
+  const base = join(APP_DIR, route === '/' ? 'index' : route.slice(1));
+  return ['.tsx', '.ts', '/index.tsx', '/index.ts'].some((ext) => existsSync(base + ext));
+}
+function checkRoutes(file, text) {
+  for (const m of text.matchAll(ROUTE_RE)) {
+    if (!routeExists(m[2])) {
+      fail(file, `navigates to '${m[2]}', but no route file matches it under src/app/. Fix the path or add the route (docs/ARCHITECTURE.md).`);
+    }
+  }
+}
+
 function checkFile(file) {
   const ext = extname(file);
   let text;
@@ -165,6 +181,7 @@ function checkFile(file) {
 
   const layer = layerOf(file);
   if (!layer) return;
+  if (layer === 'app') checkRoutes(file, text);
   for (const m of text.matchAll(IMPORT_RE)) {
     const spec = m[1] || m[2] || m[3] || m[4];
     if (PURE.has(layer) && PLATFORM_PKG.test(spec)) {

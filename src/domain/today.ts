@@ -1,20 +1,30 @@
-import type { Appointment, Intensity, LadderTone, SeriesStep, StepNumber } from '@/types';
+import type { Appointment, Intensity, LadderTone, SeriesStep, StepNumber, Tone } from '@/types';
 
+import { isListed, isPlanned } from './appointment';
 import { computeLeaveBy } from './leaveBy';
-import { formatCue, formatStartCue } from './lines/cue';
+import { formatCue, formatStartCue, formatStartsAtCue } from './lines/cue';
 import { withLines } from './lines/select';
 import { buildSeries, scheduledTone } from './series';
+import { supportiveSeries } from './stuck';
 
 const MS_PER_MINUTE = 60_000;
 
-/** Tone shown on a card: the next series step's tone, or `done` when nothing is left. */
-export type CardTone = LadderTone | 'done';
+/**
+ * Tone shown on a card: the next series step's tone (`supportive` once stuck), or `done` when
+ * nothing is left.
+ */
+export type CardTone = Tone | 'done';
 
 export interface CardStatus {
   leaveBy: Date;
-  /** Live countdown ("leave in 12 min", "starts in 20 min"); null once the series is over. */
+  /**
+   * Live countdown ("leave in 12 min", "starts in 20 min"), or once stuck the neutral "starts at
+   * 3:00"; null once the series is over.
+   */
   cue: string | null;
   tone: CardTone;
+  /** "I've left" or "I'm genuinely stuck" was pressed (a badge on the card); null otherwise. */
+  mark: 'left' | 'stuck' | null;
 }
 
 export interface DayGroup {
@@ -23,21 +33,16 @@ export interface DayGroup {
   /** 0 = today, 1 = tomorrow, … */
   daysFromToday: number;
   appointments: Appointment[];
-  /** How many of them start after `now`. */
+  /** How many planned ones (not left) start after `now`. */
   remaining: number;
 }
 
 export interface NagLine {
-  tone: LadderTone;
+  tone: Tone;
   text: string;
   /** When this line fires; equals `now` for a step already due. */
   at: Date;
   appointmentId: string;
-}
-
-/** Statuses that still get reminders and show on Home; `left`/`stuck`/`done` are handled later. */
-export function isActive(appt: Pick<Appointment, 'status'>): boolean {
-  return appt.status === 'scheduled' || appt.status === 'snoozed';
 }
 
 /**
@@ -50,18 +55,18 @@ export function prunePast(list: readonly Appointment[], now: Date): Appointment[
 }
 
 /**
- * Active appointments from local midnight of `now`'s day onward (so today's past ones stay
- * visible), sorted by start and grouped by local day.
+ * Listed appointments (`isListed`: planned or left) from local midnight of `now`'s day onward (so
+ * today's past ones stay visible), sorted by start and grouped by local day.
  */
 export function groupUpcoming(list: readonly Appointment[], now: Date): DayGroup[] {
   const sorted = prunePast(list, now)
-    .filter(isActive)
+    .filter(isListed)
     .sort((a, b) => Date.parse(a.startsAt) - Date.parse(b.startsAt));
   const groups: DayGroup[] = [];
   for (const appt of sorted) {
     const day = startOfLocalDay(new Date(appt.startsAt));
     const last = groups[groups.length - 1];
-    const upcoming = Date.parse(appt.startsAt) > now.getTime() ? 1 : 0;
+    const upcoming = isPlanned(appt) && Date.parse(appt.startsAt) > now.getTime() ? 1 : 0;
     if (last && last.day.getTime() === day.getTime()) {
       last.appointments.push(appt);
       last.remaining += upcoming;
@@ -80,23 +85,37 @@ export function groupUpcoming(list: readonly Appointment[], now: Date): DayGroup
 /** Leave-by, live countdown and tone for one card (docs/exec-plans F005 "Home list"). */
 export function cardStatus(appt: Appointment, now: Date): CardStatus {
   const leaveBy = computeLeaveBy(appt);
-  const next = isActive(appt) ? buildSeries(appt, now)[0] : undefined;
-  if (!next) return { leaveBy, cue: null, tone: 'done' };
-  const cue = appt.inPerson
-    ? formatCue((now.getTime() - leaveBy.getTime()) / MS_PER_MINUTE)
-    : formatStartCue((Date.parse(appt.startsAt) - now.getTime()) / MS_PER_MINUTE);
-  return { leaveBy, cue, tone: next.tone };
+  const mark = appt.status === 'left' || appt.status === 'stuck' ? appt.status : null;
+  const next = isPlanned(appt) ? buildSeries(appt, now)[0] : undefined;
+  if (!next) return { leaveBy, cue: null, tone: 'done', mark };
+  // Once stuck, no countdown or lateness: the same neutral cue as the supportive nags.
+  const cue =
+    mark === 'stuck'
+      ? formatStartsAtCue(new Date(appt.startsAt))
+      : appt.inPerson
+        ? formatCue((now.getTime() - leaveBy.getTime()) / MS_PER_MINUTE)
+        : formatStartCue((Date.parse(appt.startsAt) - now.getTime()) / MS_PER_MINUTE);
+  return { leaveBy, cue, tone: mark === 'stuck' ? 'supportive' : next.tone, mark };
 }
 
 /**
- * The next line Nag will say: across active appointments, the series step that fires soonest
- * (a step already due fires at `now`). Ties go to the earlier start.
+ * The next line Nag will say: across planned appointments, the series step that fires soonest
+ * (a step already due fires at `now`); once stuck, the next supportive nag still to come (none after
+ * the 2 supportive ones). Ties go to the earlier start.
  */
 export function nextNagLine(list: readonly Appointment[], now: Date): NagLine | null {
   let best: NagLine | null = null;
   let bestStart = Infinity;
-  for (const appt of list.filter(isActive)) {
-    const [first] = withLines(buildSeries(appt, now).slice(0, 1), appt);
+  for (const appt of list.filter(isPlanned)) {
+    const [first] =
+      appt.status === 'stuck'
+        ? withLines(
+            supportiveSeries(appt)
+              .filter((s) => s.at.getTime() > now.getTime())
+              .slice(0, 1),
+            appt,
+          )
+        : withLines(buildSeries(appt, now).slice(0, 1), appt);
     if (!first) continue;
     const start = Date.parse(appt.startsAt);
     const at = first.at.getTime();

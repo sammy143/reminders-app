@@ -115,3 +115,56 @@ Newest entry at the bottom. Each session appends one entry:
   Round 2 kept "denied" sticky. check.sh 270 tests. The architecture check traces the expo-notifications require graph.
 - Next: the user's combined Expo Go checklist for F005 + F006 (in PR). Then F007.
 - Blockers/notes: device-only: foreground display, Android exact vs. inexact timing in Expo Go, iOS data.at.
+
+## 2026-09-25 — F005 + F006 — PASS (device-verified on iOS)
+- Did: the user ran the combined Expo Go checklist (PR #6) on an iPhone; every F005 + F006 step passed
+  (startup, persistence across restart, native pickers, notification series timing, edit and delete behaviour,
+  the permission banner).
+- Verified: both set to passes: true with the note "device-verified on iOS 2026-09-25; Android untested". Exec plans
+  moved to completed/.
+- Next: F007 ("I've left" / "I'm genuinely stuck").
+- Blockers/notes: the Android device check is outstanding (docs/tech-debt.md). The Android-specific fixes
+  (deep-import loader, 13+ permission mapping) are unit-tested but not device-tested.
+
+## 2026-09-25 — F007 — PASS-PENDING-HUMAN
+- Did: "I've left" (marks left, cancels the remaining series, dismisses delivered nags) and "I'm genuinely stuck"
+  (remaining steps switch to supportive lines and category) from the notification action buttons (nagSeries/nagSupportive
+  categories, warm + cold-start responses) and in the app via a new alarm screen (active-alarm.png, per-tone
+  contrast colours, WCAG test). Online events never reach the alarm. Moving the start time resets left/stuck only if the new
+  series hasn't started. Home shows "Left ✓"/"Stuck" badges.
+- Also: cherry-picked d525920 (F005/F006 passes:true etc.), which PR #6 merged without.
+- Verified: verifier PASS-PENDING-HUMAN twice (21 mutants caught). The reviewer's blocker (tapping an online reminder
+  opened the escalation alarm) was fixed and re-confirmed; 2 fix rounds. check.sh 365 tests.
+- Next: the user's Expo Go check (PR checklist), then F008.
+- Blockers/notes: device-only: Expo Go category/action buttons (esp. Android), cold-start navigation, tray clean-up.
+  Open product question: should the supportive series keep ending every line in "N min late"?
+
+## 2026-09-25 — F007 — follow-up (user-requested, PR #7)
+- Did: stuck mode shortened and softened: at most 2 supportive nags (the next 2 steps after pressing, fixed via
+  `stuckAt`), neutral "starts at h:mm" cue, no lateness cue; PLAN rules 5/7 updated. Harness: `npm run typecheck`
+  uses tsconfig.typecheck.json (no .expo/types or expo-env.d.ts), so a stale generated router.d.ts can't break
+  check.sh. A new route-literal check in check-architecture replaces typed-route checking in the gate.
+- Verified: verifier PASS-PENDING-HUMAN (7 stuck breakages caught; stale-types failure reproduced with the old
+  command and passing with the new; fresh-clone typecheck passes; route check fires). check.sh 382 tests.
+- Next: the user's device check for F007, then F008.
+
+## 2026-09-25 — F007 — device check round 1 (user-run, iPhone Expo Go)
+- Result: steps 1, 3–9 passed; step 2 failed (no action buttons on long-press; in-app actions work).
+- Did: likely cause found in code: both notification categories were registered concurrently, and
+  the iOS native CategoryManager actor re-enters at `await loadCategories()`, so on a cold start the
+  last write can drop one category. Fix: register sequentially, read back with getNotificationCategoriesAsync,
+  retry once, warn naming any missing id, and log `[nag] notification categories: …` in dev.
+  Also: a stuck appointment's Home card shows "starts at h:mm" instead of the live countdown.
+- Verified: verifier PASS-PENDING-HUMAN (5 breakages caught; race confirmed from the Swift source).
+  Unconfirmed on Expo Go, which ships its own scoped categories module. check.sh 388 tests.
+- Next: the user re-tests step 2. If buttons still don't show with both categories logged, treat it as an
+  Expo Go limitation: document it, add it to F012 verify, and mark F007 as the user specified.
+
+## 2026-09-25 — F007 — PASS (device-verified on iOS)
+- Result: the user re-tested on iPhone (Expo Go) after the category-registration fix. The log showed both categories
+  (nagSeries, nagSupportive); lock-screen and Notification Centre buttons work; the stuck card shows "starts at h:mm";
+  "I've left" stops the nags. Root cause confirmed: concurrent category registration raced in the iOS CategoryManager actor.
+- Verified: passes: true, note "device-verified on iOS incl. notification buttons; Android untested". Plan moved
+  to completed/.
+- Next: F008 (Settings).
+- Blockers/notes: the Android device check (F005–F007) is outstanding; the DateTimePicker `onChange` deprecation is in tech-debt.

@@ -24,6 +24,18 @@ export function formatStartCue(minutesToStart: number): string {
   return minutes > 0 ? `starts in ${minutes} min` : 'starting now';
 }
 
-function roundMinutes(minutes: number): number {
+/**
+ * Neutral cue for the supportive series ("I'm genuinely stuck", PLAN rule 5): the start time in
+ * local h:mm, with no countdown or lateness ("starts at 3:00"). Same h:mm as the app's
+ * `formatShortTime`, built from the Date so it reads the same on every platform.
+ */
+export function formatStartsAtCue(startsAt: Date): string {
+  const hours = startsAt.getHours() % 12 || 12;
+  const minutes = String(startsAt.getMinutes()).padStart(2, '0');
+  return `starts at ${hours}:${minutes}`;
+}
+
+/** Nearest whole minute, ties away from zero (±24.5 → ±25), as every cue rounds. */
+export function roundMinutes(minutes: number): number {
   return Math.sign(minutes) * Math.round(Math.abs(minutes));
 }

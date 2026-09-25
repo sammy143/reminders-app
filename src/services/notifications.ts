@@ -9,15 +9,24 @@ import type {
 } from 'expo-notifications/build/NotificationPermissions.types';
 import type { NotificationHandler } from 'expo-notifications/build/NotificationsHandler';
 import type {
+  NotificationAction,
+  NotificationCategory,
   NotificationRequest,
   NotificationRequestInput,
+  NotificationResponse as ExpoNotificationResponse,
   SchedulableTriggerInputTypes,
 } from 'expo-notifications/build/Notifications.types';
 import { z } from 'zod';
 
+import type { NotificationResponse } from '@/domain/notificationActions';
 import type { PlannedNotification, ScheduledNotification } from '@/domain/notificationPlan';
 
-import type { NotificationPermission, NotificationsPort } from './notificationsPort';
+import { registerCategories } from './notificationCategoriesSetup';
+import {
+  unavailableNotifications,
+  type NotificationPermission,
+  type NotificationsPort,
+} from './notificationsPort';
 
 /** Android channel for every nag (high importance, so they pop up as heads-up notifications). */
 export const CHANNEL_ID = 'nag';
@@ -37,6 +46,20 @@ export interface NotificationsApi {
   requestPermissionsAsync: () => Promise<NotificationPermissionsStatus>;
   setNotificationHandler: (handler: NotificationHandler | null) => void;
   setNotificationChannelAsync: (id: string, channel: NotificationChannelInput) => Promise<unknown>;
+  setNotificationCategoryAsync: (
+    id: string,
+    actions: NotificationAction[],
+  ) => Promise<NotificationCategory>;
+  getNotificationCategoriesAsync: () => Promise<NotificationCategory[]>;
+  addNotificationResponseReceivedListener: (
+    listener: (response: ExpoNotificationResponse) => void,
+  ) => { remove: () => void };
+  getLastNotificationResponse: () => ExpoNotificationResponse | null;
+  clearLastNotificationResponse: () => void;
+  dismissNotificationAsync: (id: string) => Promise<void>;
+  getPresentedNotificationsAsync: () => Promise<{ request: { identifier: string } }[]>;
+  /** `actionIdentifier` of a plain tap on the notification (not a button). */
+  DEFAULT_ACTION: string;
   DATE: SchedulableTriggerInputTypes.DATE;
   HIGH_IMPORTANCE: AndroidImportance;
   /** iOS statuses that count as granted (provisional, ephemeral). */
@@ -55,6 +78,11 @@ export function loadNotificationsApi(): NotificationsApi | null {
     const permissions = require('expo-notifications/build/NotificationPermissions');
     const handler = require('expo-notifications/build/NotificationsHandler');
     const channels = require('expo-notifications/build/setNotificationChannelAsync');
+    const categories = require('expo-notifications/build/setNotificationCategoryAsync');
+    const readCategories = require('expo-notifications/build/getNotificationCategoriesAsync');
+    const emitter = require('expo-notifications/build/NotificationsEmitter');
+    const dismissing = require('expo-notifications/build/dismissNotificationAsync');
+    const presented = require('expo-notifications/build/getPresentedNotificationsAsync');
     const types = require('expo-notifications/build/Notifications.types');
     const channelTypes = require('expo-notifications/build/NotificationChannelManager.types');
     const permissionTypes = require('expo-notifications/build/NotificationPermissions.types');
@@ -66,6 +94,14 @@ export function loadNotificationsApi(): NotificationsApi | null {
       requestPermissionsAsync: permissions.requestPermissionsAsync,
       setNotificationHandler: handler.setNotificationHandler,
       setNotificationChannelAsync: channels.setNotificationChannelAsync,
+      setNotificationCategoryAsync: categories.setNotificationCategoryAsync,
+      getNotificationCategoriesAsync: readCategories.getNotificationCategoriesAsync,
+      addNotificationResponseReceivedListener: emitter.addNotificationResponseReceivedListener,
+      getLastNotificationResponse: emitter.getLastNotificationResponse,
+      clearLastNotificationResponse: emitter.clearLastNotificationResponse,
+      dismissNotificationAsync: dismissing.dismissNotificationAsync,
+      getPresentedNotificationsAsync: presented.getPresentedNotificationsAsync,
+      DEFAULT_ACTION: emitter.DEFAULT_ACTION_IDENTIFIER,
       DATE: types.SchedulableTriggerInputTypes.DATE,
       HIGH_IMPORTANCE: channelTypes.AndroidImportance.HIGH,
       IOS_GRANTED_LIKE: [
@@ -91,6 +127,8 @@ export function loadNotificationsApi(): NotificationsApi | null {
 
 /** When the OS reports it; iOS turns DATE triggers into relative intervals, so data carries it. */
 const PayloadSchema = z.object({ at: z.number().finite() });
+/** Our own copy of the category: Expo Go may scope `categoryIdentifier` when it reads it back. */
+const CategorySchema = z.object({ category: z.string() });
 const DateTriggerSchema = z.object({ type: z.literal('date'), value: z.number().finite() });
 
 /**
@@ -99,16 +137,8 @@ const DateTriggerSchema = z.object({ type: z.literal('date'), value: z.number().
  */
 export function createNotificationsPort(api: NotificationsApi | null): NotificationsPort {
   let channel: Promise<unknown> | null = null;
-  if (!api) {
-    return {
-      setup: async () => {},
-      getPermission: async () => 'unavailable',
-      requestPermission: async () => 'unavailable',
-      listScheduled: async () => [],
-      schedule: async (planned) => planned.key,
-      cancel: async () => {},
-    };
-  }
+  let categories: Promise<unknown> | null = null;
+  if (!api) return unavailableNotifications;
   return {
     // Resolves to null on iOS. On Android 13+ a channel must exist before asking permission.
     setup: async () => {
@@ -118,7 +148,12 @@ export function createNotificationsPort(api: NotificationsApi | null): Notificat
           channel = null;
           throw error;
         });
-      await channel;
+      // One at a time, then verified (see registerCategories for the iOS race this avoids).
+      categories ??= registerCategories(api).catch((error: unknown) => {
+        categories = null; // try again on the next setup
+        console.warn('Notification buttons are unavailable', error);
+      });
+      await Promise.all([channel, categories]);
     },
     getPermission: async () => toPermission(await api.getPermissionsAsync(), api.IOS_GRANTED_LIKE),
     requestPermission: async () =>
@@ -127,10 +162,61 @@ export function createNotificationsPort(api: NotificationsApi | null): Notificat
     schedule: (planned: PlannedNotification) =>
       api.scheduleNotificationAsync({
         identifier: planned.key,
-        content: { title: planned.title, body: planned.body, data: { at: planned.at.getTime() } },
+        content: {
+          title: planned.title,
+          body: planned.body,
+          data: {
+            at: planned.at.getTime(),
+            ...(planned.category ? { category: planned.category } : {}),
+          },
+          ...(planned.category ? { categoryIdentifier: planned.category } : {}),
+        },
         trigger: { type: api.DATE, date: planned.at, channelId: CHANNEL_ID },
       }),
     cancel: (id) => api.cancelScheduledNotificationAsync(id),
+    dismiss: (id) => api.dismissNotificationAsync(id),
+    listPresented: async () =>
+      (await api.getPresentedNotificationsAsync()).map((n) => n.request.identifier),
+    onResponse: (listener) => {
+      const subscription = api.addNotificationResponseReceivedListener((raw) => {
+        // Handled here, so iOS mustn't hand it out again as the "last response" on a later launch.
+        clearLast(api);
+        listener(toResponse(raw, api.DEFAULT_ACTION));
+      });
+      return () => subscription.remove();
+    },
+    takeLastResponse: () => {
+      try {
+        const raw = api.getLastNotificationResponse();
+        if (raw) api.clearLastNotificationResponse();
+        return raw ? toResponse(raw, api.DEFAULT_ACTION) : null;
+      } catch (error) {
+        console.warn('Could not read the notification that opened the app', error);
+        return null;
+      }
+    },
+  };
+}
+
+function clearLast(api: NotificationsApi): void {
+  try {
+    api.clearLastNotificationResponse();
+  } catch (error) {
+    console.warn('Could not clear the last notification response', error);
+  }
+}
+
+/** A plain tap (the OS default action) becomes `open`; button ids pass through unchanged. */
+export function toResponse(
+  raw: ExpoNotificationResponse,
+  defaultAction: string,
+): NotificationResponse {
+  const notificationId = raw.notification.request.identifier;
+  const actionId = raw.actionIdentifier === defaultAction ? 'open' : raw.actionIdentifier;
+  return {
+    responseId: `${notificationId}|${raw.notification.date}|${actionId}`,
+    notificationId,
+    actionId,
   };
 }
 
@@ -153,12 +239,19 @@ export function toPermission(
  * The identifier is the key (set when scheduling), so it never depends on the payload. `at`
  * comes from an Android DATE trigger (`{ type: 'date', value }`), else from `data.at` (iOS
  * reports a relative interval), else is unknown (an invalid Date: the diff reschedules it).
+ * `category` comes from `data.category`; none (e.g. scheduled before F007) → null.
  */
 export function toScheduled(request: NotificationRequest): ScheduledNotification {
   const trigger = DateTriggerSchema.safeParse(request.trigger);
   const payload = PayloadSchema.safeParse(request.content.data);
   const at = trigger.success ? trigger.data.value : payload.success ? payload.data.at : NaN;
-  return { id: request.identifier, at: new Date(at), body: request.content.body ?? '' };
+  const category = CategorySchema.safeParse(request.content.data);
+  return {
+    id: request.identifier,
+    at: new Date(at),
+    body: request.content.body ?? '',
+    category: category.success ? category.data.category : null,
+  };
 }
 
 /**
