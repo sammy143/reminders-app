@@ -9,7 +9,7 @@ import {
 import { createFakeNotifications } from '@/state/testing';
 import type { Appointment } from '@/types';
 
-import { AlarmScreen, countdown, SAVE_FAILED } from './AlarmScreen';
+import { AlarmScreen, countdown, progressLabel, SAVE_FAILED } from './AlarmScreen';
 
 // Fixed time (Jest runs in America/Los_Angeles). Never the real clock.
 // Starts 15:00, leave by 14:30; at 14:37 step 5 (14:36, savage at spicy) has fired.
@@ -58,7 +58,10 @@ describe('AlarmScreen', () => {
   it('"I’m genuinely stuck" shows the supportive state and hides that button', async () => {
     await renderWith([appt()]);
     await fireEvent.press(screen.getByRole('button', { name: 'I’m genuinely stuck' }));
-    await waitFor(() => expect(screen.getByText('Step 5 of 6 · Supportive')).toBeTruthy());
+    // Stuck at 14:37: only step 6 (14:40) is left, so one supportive nag; its line has no lateness.
+    await waitFor(() => expect(screen.getByText('Supportive · 1 of 1')).toBeTruthy());
+    expect(screen.getByText(/starts at 3:00\.$/i)).toBeTruthy();
+    expect(screen.queryByText(/min late/)).toBeNull();
     expect(useAppointments.getState().byId('a1')?.status).toBe('stuck');
     expect(screen.queryByRole('button', { name: 'I’m genuinely stuck' })).toBeNull();
     expect(screen.getByRole('button', { name: 'I’ve left' })).toBeTruthy();
@@ -106,5 +109,19 @@ describe('countdown', () => {
     expect(countdown(6)).toEqual({ value: '+6 min', caption: 'past your leave-by time' });
     expect(countdown(-12)).toEqual({ value: '12 min', caption: 'until your leave-by time' });
     expect(countdown(0)).toEqual({ value: 'Now', caption: 'is your leave-by time' });
+  });
+});
+
+describe('progressLabel', () => {
+  const view = (phase: 'active' | 'stuck', progress: { current: number; total: number } | null) =>
+    ({ phase, tone: 'savage', progress, line: 'x', minutesPastLeaveBy: 0 }) as const;
+  it('labels the ladder and the short supportive series', () => {
+    expect(progressLabel(view('active', { current: 5, total: 6 }), 'Savage')).toBe(
+      'Step 5 of 6 · Escalation: Savage',
+    );
+    expect(progressLabel(view('stuck', { current: 1, total: 2 }), 'Supportive')).toBe(
+      'Supportive · 1 of 2',
+    );
+    expect(progressLabel(view('stuck', null), 'Supportive')).toBe('Supportive');
   });
 });

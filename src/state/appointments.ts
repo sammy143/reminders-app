@@ -192,7 +192,7 @@ export const useAppointments = create<AppointmentsState>()((set, get) => {
       await mutate((list) => transition(list, id, markLeft));
       void dismissDelivered(get().notifications, id);
     },
-    stuck: (id) => mutate((list) => transition(list, id, markStuck)),
+    stuck: (id) => mutate((list) => transition(list, id, (a) => markStuck(a, get().clock()))),
     byId: (id) => get().appointments.find((a) => a.id === id),
   };
 });

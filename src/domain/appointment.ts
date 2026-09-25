@@ -85,7 +85,9 @@ export function newAppointment(fields: AppointmentFields, id: string): Appointme
  */
 export function applyEdit(appt: Appointment, fields: AppointmentFields, now: Date): Appointment {
   const edited = { ...appt, ...normalise(fields) };
-  return isReschedule(appt, edited, now) ? { ...edited, status: 'scheduled' } : edited;
+  if (!isReschedule(appt, edited, now)) return edited;
+  const { stuckAt: _dropped, ...fresh } = edited;
+  return { ...fresh, status: 'scheduled' };
 }
 
 /** Step 1 fires this long before leaveBy (docs/PLAN.md "Escalation schedule"). */
@@ -155,11 +157,12 @@ export function markLeft(appt: Appointment): Appointment {
 
 /**
  * "I'm genuinely stuck" (PLAN rule 5): the remaining series turns supportive. Only a `scheduled`
- * or `snoozed` appointment with an alarm changes; anything else is returned unchanged (the same object).
+ * or `snoozed` appointment with an alarm changes, and records `stuckAt` (the supportive series is
+ * the next 2 steps after it, stuck.ts); anything else is returned unchanged (the same object).
  */
-export function markStuck(appt: Appointment): Appointment {
+export function markStuck(appt: Appointment, now: Date): Appointment {
   return hasAlarm(appt) && (appt.status === 'scheduled' || appt.status === 'snoozed')
-    ? { ...appt, status: 'stuck' }
+    ? { ...appt, status: 'stuck', stuckAt: now.toISOString() }
     : appt;
 }
 

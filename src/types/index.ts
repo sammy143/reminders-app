@@ -26,6 +26,11 @@ export interface Appointment {
   intensity: Intensity;
   status: AppointmentStatus;
   /**
+   * When "I'm genuinely stuck" was pressed (ISO 8601): the supportive series is the next 2 steps
+   * after it, fixed from then on. Set by `markStuck`, cleared by a reschedule.
+   */
+  stuckAt?: string;
+  /**
    * Unused, always `[]`: F006 reconciles against the OS's scheduled list by key instead
    * (docs/exec-plans F006 "Decisions"). Remove with the next storage migration (docs/tech-debt.md).
    */

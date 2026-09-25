@@ -13,12 +13,15 @@ until you actually leave the house. Hobby project; also a testbed for Claude clo
 3. **Mock the lateness, never the person.** No insults about identity, appearance, ability,
    or protected traits. Lines are tied to the moment ("the bus doesn't care about your vibes").
 4. **Named character delivers the insults** (name TBD), not "the app".
-5. **User control:** intensity `mild | spicy | savage`; "I'm genuinely stuck" switches the
-   remaining series to supportive tone; "mute today".
+5. **User control:** intensity `mild | spicy | savage`; "I'm genuinely stuck" replaces the
+   remaining series with **at most 2** supportive nags (the next 2 steps after pressing it; later
+   steps are dropped, a step already due doesn't re-fire), which carry a neutral cue with the start
+   time ("starts at 3:00") and never a countdown or lateness cue; "mute today".
 6. **Cap:** max 6 notifications per event; every line in a series is unique.
 7. **Every message carries a practical cue**: in-person events get a leave cue from leaveBy
    ("leave in 4 min", "leave now", "3 min late"); other events (online, phone) get a start cue
-   from startsAt ("starts in 20 min", "starting now").
+   from startsAt ("starts in 20 min", "starting now"); supportive nags (rule 5) get the start time
+   ("starts at 3:00").
 
 ## Stack
 
@@ -57,6 +60,7 @@ interface Appointment {
   inPerson: boolean;
   intensity: Intensity;
   status: AppointmentStatus;
+  stuckAt?: string;          // when "I'm genuinely stuck" was pressed; fixes the ≤ 2 supportive nags
   notificationIds: string[]; // unused, always [] (F006 matches the OS list by key); drop at next storage migration
   lines?: string[];          // pre-generated insults (v2)
   source: AppointmentSource;

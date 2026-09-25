@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { alarmView, SERIES_STEPS, type AlarmView } from '@/domain/alarm';
+import { alarmView, type AlarmView } from '@/domain/alarm';
 import { LEFT_TITLE, STUCK_TITLE } from '@/domain/notificationCategories';
 import { useAppointments } from '@/state/appointments';
 import { useNow } from '@/state/useNow';
@@ -111,7 +111,7 @@ function Takeover({ appt, view, pending, error, onBack, onLeft, onStuck }: Takeo
   const c = ALARM_TONE[view.tone];
   const stuck = view.phase === 'stuck';
   const { value, caption } = countdown(view.minutesPastLeaveBy);
-  const stepLabel = `Step ${view.step} of ${SERIES_STEPS} · ${stuck ? 'Supportive' : `Escalation: ${t.label}`}`;
+  const stepLabel = progressLabel(view, t.label);
   return (
     <SafeAreaView className={`flex-1 ${t.bg}`} edges={['top', 'bottom']}>
       {c.scrim ? <View className={`absolute inset-0 ${c.scrim}`} aria-hidden /> : null}
@@ -151,7 +151,7 @@ function Takeover({ appt, view, pending, error, onBack, onLeft, onStuck }: Takeo
             </View>
           </View>
           <View className="items-center gap-2">
-            <StepDots step={view.step ?? 0} colours={c} />
+            {view.progress ? <StepDots {...view.progress} colours={c} /> : null}
             <Text className={`text-caption font-semibold uppercase tracking-wider ${c.text}`}>
               {stepLabel}
             </Text>
@@ -193,11 +193,22 @@ function Takeover({ appt, view, pending, error, onBack, onLeft, onStuck }: Takeo
   );
 }
 
-/** Six dots: filled up to the current step, which also gets a ring (as in the mockup). */
-function StepDots({ step, colours: c }: { step: number; colours: AlarmColours }) {
+/**
+ * "Step 5 of 6 · Escalation: Savage" on the ladder; "Supportive · 1 of 2" once stuck (or just
+ * "Supportive" when stuck came too late for any supportive nag).
+ */
+export function progressLabel(view: AlarmView, toneLabel: string): string {
+  const p = view.progress;
+  if (view.phase === 'stuck') return p ? `Supportive · ${p.current} of ${p.total}` : 'Supportive';
+  return p ? `Step ${p.current} of ${p.total} · Escalation: ${toneLabel}` : '';
+}
+
+/** Dots: filled up to the current step, which also gets a ring (as in the mockup). */
+function StepDots(props: { current: number; total: number; colours: AlarmColours }) {
+  const { current: step, total, colours: c } = props;
   return (
     <View className="flex-row items-center gap-2" aria-hidden>
-      {Array.from({ length: SERIES_STEPS }, (_, i) => i + 1).map((n) => (
+      {Array.from({ length: total }, (_, i) => i + 1).map((n) => (
         <View
           key={n}
           className={`items-center justify-center rounded-full ${

@@ -135,6 +135,18 @@ describe('newAppointment / applyEdit', () => {
     },
   );
 
+  it('a reschedule forgets when the user was stuck', () => {
+    const stuck: Appointment = {
+      ...newAppointment(fields, 'a1'),
+      status: 'stuck',
+      stuckAt: '2026-09-25T21:35:00.000Z',
+    };
+    const moved = applyEdit(stuck, { ...fields, startsAt: '2026-09-26T15:00:00-07:00' }, EDIT_NOW);
+    expect(moved.status).toBe('scheduled');
+    expect(moved).not.toHaveProperty('stuckAt');
+    expect(applyEdit(stuck, { ...fields, title: 'Gym' }, EDIT_NOW).stuckAt).toBe(stuck.stuckAt);
+  });
+
   it.each(['left', 'stuck'] as const)('travel, buffer or title edits keep %s', (status) => {
     const appt: Appointment = { ...newAppointment(fields, 'a1'), status };
     for (const edit of [{ travelMinutes: 0 }, { bufferMinutes: 0 }, { title: 'Gym' }]) {
@@ -210,18 +222,22 @@ describe('status lifecycle (F007)', () => {
 
   it('marks a scheduled or snoozed appointment stuck; anything else is returned unchanged', () => {
     for (const s of ['scheduled', 'snoozed'] as const) {
-      expect(markStuck(at(s))).toEqual({ ...at(s), status: 'stuck' });
+      expect(markStuck(at(s), EDIT_NOW)).toEqual({
+        ...at(s),
+        status: 'stuck',
+        stuckAt: EDIT_NOW.toISOString(),
+      });
     }
     for (const s of ['stuck', 'left', 'done'] as const) {
       const appt = at(s);
-      expect(markStuck(appt)).toBe(appt);
+      expect(markStuck(appt, EDIT_NOW)).toBe(appt);
     }
   });
 
   it('leaves an event without an alarm (not in person) unchanged', () => {
     const online: Appointment = { ...at('scheduled'), inPerson: false };
     expect(markLeft(online)).toBe(online);
-    expect(markStuck(online)).toBe(online);
+    expect(markStuck(online, EDIT_NOW)).toBe(online);
     expect(hasAlarm(online)).toBe(false);
     expect(hasAlarm(at('scheduled'))).toBe(true);
   });
@@ -229,7 +245,7 @@ describe('status lifecycle (F007)', () => {
   it('does not mutate its input', () => {
     const appt = at('scheduled');
     markLeft(appt);
-    markStuck(appt);
+    markStuck(appt, EDIT_NOW);
     expect(appt.status).toBe('scheduled');
   });
 });

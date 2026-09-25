@@ -186,16 +186,18 @@ describe('supportive lines (F007)', () => {
     expect(toSupportive(steps)).toEqual(steps.map((s) => ({ ...s, tone: 'supportive' })));
   });
 
-  it('takes lines from the supportive cell, each with its leave cue', () => {
+  it('takes lines from the supportive cell with the neutral start-time cue, never lateness', () => {
+    // 15:00Z is 8:00 in Los Angeles (Jest's zone).
     for (const intensity of INTENSITIES) {
-      const input = { ...base, intensity };
-      const messages = stuckLines(input, 'appt-1', EARLY);
-      expect(messages).toHaveLength(6);
-      const templates = BANK.supportive[intensity].map((t) => t.replace('{cue}', ''));
-      for (const m of messages) {
-        expect(m.tone).toBe('supportive');
-        expect(m.text).toMatch(LEAVE_CUE);
-        expect(templates).toContain(m.text.replace(CUE, '.'));
+      for (const now of NOWS) {
+        const messages = stuckLines({ ...base, intensity }, 'appt-1', now);
+        const templates = BANK.supportive[intensity].map((t) => t.replace('{cue}', ''));
+        for (const m of messages) {
+          expect(m.tone).toBe('supportive');
+          expect(m.text).toMatch(/(: s|S)tarts at 8:00\.$/);
+          expect(m.text).not.toMatch(/leave|late|\bmin\b|\bnow\b/i);
+          expect(templates).toContain(m.text.replace(/starts at 8:00\.$/i, '.'));
+        }
       }
     }
   });

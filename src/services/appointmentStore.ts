@@ -19,6 +19,7 @@ const AppointmentSchema = z.object({
   inPerson: z.boolean(),
   intensity: z.enum(['mild', 'spicy', 'savage']),
   status: z.enum(['scheduled', 'snoozed', 'left', 'stuck', 'done']),
+  stuckAt: z.string().refine(isOffsetDateTime, 'stuckAt must be an ISO date-time').optional(),
   notificationIds: z.array(z.string()),
   lines: z.array(z.string()).optional(),
   source: z.enum(['manual', 'calendar']),

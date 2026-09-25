@@ -66,6 +66,13 @@ describe('appointmentStore', () => {
     ]);
   });
 
+  it('keeps a valid stuckAt and drops an entry with a bad one; older entries have none', () => {
+    const stuck = { ...valid, id: 's', status: 'stuck', stuckAt: '2026-09-25T21:35:00.000Z' };
+    const bad = { ...valid, id: 'b', status: 'stuck', stuckAt: 'yesterday' };
+    const raw = JSON.stringify([stuck, bad, valid]);
+    expect(parseAppointments(raw)).toEqual([stuck, valid]);
+  });
+
   it('keeps the first entry when an id repeats', () => {
     const raw = JSON.stringify([valid, { ...valid, title: 'Second' }, { ...valid, id: 'a2' }]);
     expect(parseAppointments(raw).map((a) => [a.id, a.title])).toEqual([

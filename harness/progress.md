@@ -138,3 +138,12 @@ Newest entry at the bottom. Each session appends one entry:
 - Next: the user's Expo Go check (PR checklist), then F008.
 - Blockers/notes: device-only: Expo Go category/action buttons (esp. Android), cold-start navigation, tray clean-up.
   Open product question: should the supportive series keep ending every line in "N min late"?
+
+## 2026-09-25 — F007 — follow-up (user-requested, PR #7)
+- Did: stuck mode shortened and softened: at most 2 supportive nags (the next 2 steps after pressing, fixed via
+  `stuckAt`), neutral "starts at h:mm" cue, no lateness cue; PLAN rules 5/7 updated. Harness: `npm run typecheck`
+  uses tsconfig.typecheck.json (no .expo/types or expo-env.d.ts), so a stale generated router.d.ts can't break
+  check.sh. A new route-literal check in check-architecture replaces typed-route checking in the gate.
+- Verified: verifier PASS-PENDING-HUMAN (7 stuck breakages caught; stale-types failure reproduced with the old
+  command and passing with the new; fresh-clone typecheck passes; route check fires). check.sh 382 tests.
+- Next: the user's device check for F007, then F008.

@@ -127,12 +127,19 @@ describe('HomeScreen', () => {
   });
 
   it('shows a stuck appointment with a "Stuck" badge and a supportive Nag line', async () => {
-    await renderAt(LATE_EVENING, [appt('soon', 'Dentist', '2026-09-25T23:50:00-07:00', 'stuck')]);
+    // Stuck at 23:14: supportive nags at 23:20 and 23:23.
+    await renderAt(LATE_EVENING, [
+      {
+        ...appt('soon', 'Dentist', '2026-09-25T23:50:00-07:00', 'stuck'),
+        stuckAt: '2026-09-25T23:14:00-07:00',
+      },
+    ]);
     const card = screen.getByRole('button', {
       name: /^Dentist, Stuck, Leave by 11:20, leave in 5 min/,
     });
     expect(within(card).getByText('Stuck')).toBeTruthy();
     expect(screen.getByText(/Supportive tone/i)).toBeTruthy();
+    expect(screen.getByText(/starts at 11:50\.$/i)).toBeTruthy();
   });
 
   it('shows a non-blocking message when stored appointments could not be loaded', async () => {

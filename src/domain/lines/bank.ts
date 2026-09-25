@@ -186,7 +186,7 @@ export const BANK: LineBank = {
     ],
     spicy: [
       "Okay, stuck. Send a quick 'held up' text. {cue}.",
-      "Fair enough. When it clears, here's the time: {cue}.",
+      'Fair enough. When it clears, remember: {cue}.',
       'Things happen. A new ETA beats silence. {cue}.',
       'No roast this time. Just the time. {cue}.',
       'Handle what is in front of you, then the door. {cue}.',

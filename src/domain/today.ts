@@ -3,8 +3,9 @@ import type { Appointment, Intensity, LadderTone, SeriesStep, StepNumber, Tone }
 import { isListed, isPlanned } from './appointment';
 import { computeLeaveBy } from './leaveBy';
 import { formatCue, formatStartCue } from './lines/cue';
-import { toSupportive, withLines } from './lines/select';
+import { withLines } from './lines/select';
 import { buildSeries, scheduledTone } from './series';
+import { supportiveSeries } from './stuck';
 
 const MS_PER_MINUTE = 60_000;
 
@@ -92,15 +93,22 @@ export function cardStatus(appt: Appointment, now: Date): CardStatus {
 
 /**
  * The next line Nag will say: across planned appointments, the series step that fires soonest
- * (a step already due fires at `now`), supportive once stuck. Ties go to the earlier start.
+ * (a step already due fires at `now`); once stuck, the next supportive nag still to come (none after
+ * the 2 supportive ones). Ties go to the earlier start.
  */
 export function nextNagLine(list: readonly Appointment[], now: Date): NagLine | null {
   let best: NagLine | null = null;
   let bestStart = Infinity;
   for (const appt of list.filter(isPlanned)) {
-    const steps = buildSeries(appt, now).slice(0, 1);
     const [first] =
-      appt.status === 'stuck' ? withLines(toSupportive(steps), appt) : withLines(steps, appt);
+      appt.status === 'stuck'
+        ? withLines(
+            supportiveSeries(appt)
+              .filter((s) => s.at.getTime() > now.getTime())
+              .slice(0, 1),
+            appt,
+          )
+        : withLines(buildSeries(appt, now).slice(0, 1), appt);
     if (!first) continue;
     const start = Date.parse(appt.startsAt);
     const at = first.at.getTime();

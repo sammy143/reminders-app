@@ -1,13 +1,14 @@
-import type { Appointment, SeriesStep, StepNumber } from '@/types';
+import type { Appointment, SeriesMessage, SeriesStep, StepNumber, SupportiveStep } from '@/types';
 
 import { hasAlarm, isPlanned } from './appointment';
-import { toSupportive, withLines } from './lines/select';
+import { withLines } from './lines/select';
 import {
   SERIES_CATEGORY,
   SUPPORTIVE_CATEGORY,
   type NotificationCategoryId,
 } from './notificationCategories';
 import { buildSeries } from './series';
+import { supportiveSeries } from './stuck';
 
 /** Full series for this many upcoming in-person appointments (iOS keeps only 64 pending). */
 export const IN_PERSON_SERIES_LIMIT = 2;
@@ -102,8 +103,10 @@ const MS_PER_SECOND = 1_000;
  *   already fired (or been planned), and planning it again would repeat it. Planned times are
  *   clamped to at least `now + FIRE_NOW_LEAD_MS` and rounded up to a whole second (iOS drops
  *   milliseconds).
- * - A `stuck` appointment keeps its remaining steps (same keys and times) with supportive lines
- *   and the supportive category; its due step is never planned again, even when just saved.
+ * - A `stuck` appointment gets only its supportive series (`supportiveSeries`: at most 2 steps,
+ *   fixed at `stuckAt`, same keys and times) that is still ahead, with supportive lines, the
+ *   neutral "starts at h:mm" cue and the supportive category; every other step of it is cancelled,
+ *   and a due step is never planned again, even when just saved.
  * - An appointment whose series can't be built (bad data) is skipped and reported; the others
  *   are still planned.
  * - At most `MAX_PLANNED` in total; the soonest win. (With today's limits, 2 × 6 + 20 = 32 never
@@ -128,18 +131,21 @@ export function planNotifications(
     const kind = hasAlarm(appt) ? 'inPerson' : 'other';
     if (quota[kind] === 0) continue;
     const stuck = appt.status === 'stuck';
-    let series: SeriesStep[];
+    const ahead = (s: { at: Date }) => s.at.getTime() > now.getTime();
+    let messages: SeriesMessage<SeriesStep | SupportiveStep>[];
     try {
-      series = buildSeries(appt, now);
+      messages = stuck
+        ? withLines(supportiveSeries(appt).filter(ahead), appt)
+        : withLines(
+            buildSeries(appt, now).filter((s) => ahead(s) || justSaved.has(appt.id)),
+            appt,
+          );
     } catch (error) {
       skipped.push({ appointmentId: appt.id, error });
       continue;
     }
-    const due = (s: SeriesStep) => s.at.getTime() <= now.getTime();
-    const remaining = series.filter((s) => !due(s) || (justSaved.has(appt.id) && !stuck));
-    if (remaining.length === 0) continue;
+    if (messages.length === 0) continue;
     quota[kind] -= 1;
-    const messages = stuck ? withLines(toSupportive(remaining), appt) : withLines(remaining, appt);
     const category = !hasAlarm(appt) ? null : stuck ? SUPPORTIVE_CATEGORY : SERIES_CATEGORY;
     for (const s of messages) {
       planned.push({

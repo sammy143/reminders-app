@@ -70,22 +70,33 @@ describe('store: leave and stuck', () => {
     expect(pendingFor(id)).toEqual([]);
   });
 
-  it("I'm genuinely stuck: persists `stuck` and reschedules the rest with supportive lines", async () => {
+  it("I'm genuinely stuck: persists `stuck`, keeps 2 supportive nags, cancels the rest; left clears them", async () => {
     const id = await underway();
     const ladder = pendingFor(id);
     await store().stuck(id);
     await notificationsSettled();
-    expect((await stored())[0].status).toBe('stuck');
+    expect((await stored())[0]).toMatchObject({ status: 'stuck', stuckAt: LATER.toISOString() });
+    // Stuck at 09:01: steps 2 (09:05) and 3 (09:15) stay, supportive; 4–6 are cancelled.
     const now = pendingFor(id);
-    expect(now.map((n) => n.id)).toEqual([2, 3, 4, 5, 6].map((s) => `series:${id}:${s}`));
-    expect(now.map((n) => n.at)).toEqual(ladder.map((n) => n.at));
+    expect(now.map((n) => n.id)).toEqual([2, 3].map((s) => `series:${id}:${s}`));
+    expect(now.map((n) => n.at)).toEqual(ladder.slice(0, 2).map((n) => n.at));
     const templates = BANK.supportive.spicy.map((t) => t.replace('{cue}', ''));
     for (const n of now) {
       expect(n.category).toBe('nagSupportive');
-      expect(templates).toContain(
-        n.body.replace(/(leave in \d+ min|leave now|\d+ min late)\.$/i, '.'),
-      );
+      expect(n.body).toMatch(/starts at 9:45\.$/i);
+      expect(n.body).not.toMatch(/leav|late|\bmin\b|\bnow\b/i);
+      expect(templates).toContain(n.body.replace(/starts at 9:45\.$/i, '.'));
     }
+
+    // A later sync (app back in the foreground after nag 1) never adds a third.
+    port.deliverUntil(new Date(NOW.getTime() + 6 * MIN));
+    useAppointments.setState({ clock: () => new Date(NOW.getTime() + 6 * MIN) });
+    await store().syncNotifications();
+    expect(pendingFor(id).map((n) => n.id)).toEqual([`series:${id}:3`]);
+
+    await store().leave(id);
+    await notificationsSettled();
+    expect(pendingFor(id)).toEqual([]);
   });
 
   it("I've left after stuck cancels the supportive series too", async () => {

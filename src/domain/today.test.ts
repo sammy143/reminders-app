@@ -180,11 +180,16 @@ describe('nextNagLine', () => {
     expect(nextNagLine([appt({ status: 'left' }), appt({ status: 'done' })], now)).toBeNull();
   });
 
-  it('says a supportive line for a stuck appointment', () => {
-    const line = nextNagLine([appt({ status: 'stuck' })], now);
+  it('says the next supportive nag for a stuck appointment, with the neutral cue', () => {
+    // Stuck at 14:25: supportive nags at 14:30 (step 3) and 14:33 (step 4), nothing after.
+    const stuck = appt({ status: 'stuck', stuckAt: now.toISOString() });
+    const line = nextNagLine([stuck], now);
     expect(line).toMatchObject({ tone: 'supportive' });
-    const templates = BANK.supportive.spicy.map((t) => t.replace('{cue}', 'leave in 5 min'));
+    expect(line?.at.toISOString()).toBe('2026-09-24T14:30:00.000Z');
+    // 15:00Z is 8:00 in Los Angeles (Jest's zone).
+    const templates = BANK.supportive.spicy.map((t) => t.replace('{cue}', 'starts at 8:00'));
     expect(templates.map((t) => t.toLowerCase())).toContain(line?.text.toLowerCase());
+    expect(nextNagLine([stuck], new Date('2026-09-24T14:34:00Z'))).toBeNull();
   });
 
   it('uses the earliest appointment that still has a step', () => {
