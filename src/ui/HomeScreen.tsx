@@ -12,6 +12,7 @@ import { formatDay, formatTime } from './format';
 import { TONE } from './tone';
 
 const IDLE_LINE = 'Nothing on the clock. Enjoy it while it lasts.';
+export const NOTIFICATIONS_OFF = 'Notifications are off. Nag can’t reach you.';
 
 interface HomeScreenProps {
   onAdd: () => void;
@@ -27,6 +28,7 @@ export function HomeScreen({ onAdd, onOpen }: HomeScreenProps) {
   const appointments = useAppointments((s) => s.appointments);
   const hydrated = useAppointments((s) => s.hydrated);
   const loadError = useAppointments((s) => s.loadError);
+  const notificationsOff = useAppointments((s) => s.notificationPermission === 'denied');
   const groups = groupUpcoming(appointments, now);
   const nag = nextNagLine(appointments, now);
   const nagTone = nag?.tone ?? 'done';
@@ -54,6 +56,13 @@ export function HomeScreen({ onAdd, onOpen }: HomeScreenProps) {
           line={nag?.text ?? IDLE_LINE}
         />
 
+        {notificationsOff ? (
+          <View className="rounded-button border border-line bg-surface px-4 py-3">
+            <Text role="status" className="text-label text-ink-muted">
+              {NOTIFICATIONS_OFF}
+            </Text>
+          </View>
+        ) : null}
         {loadError ? (
           <Text role="alert" className="text-label text-tone-rude">
             {loadError} Try reopening the app.

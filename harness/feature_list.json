@@ -76,7 +76,7 @@
         "bash scripts/check.sh passes"
       ],
       "passes": false,
-      "notes": "PASS-PENDING-HUMAN: web verified (create/edit/delete + reload); Expo Go persistence + native pickers await a device check."
+      "notes": "pending device check (deferred by user to run with F006 device checks). Web verified: create/edit/delete + reload."
     },
     {
       "id": "F006",
@@ -90,7 +90,7 @@
         "bash scripts/check.sh passes"
       ],
       "passes": false,
-      "notes": ""
+      "notes": "pending device check (Expo Go, with F005). Automated steps verified: save/edit/delete sync, next-2 cap, foreground top-up, fake-port tests; Android Expo Go import crash and 13+ permission fixed."
     },
     {
       "id": "F007",

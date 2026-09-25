@@ -2,8 +2,15 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import type { AppointmentDraft } from '@/domain/appointment';
 import { STORAGE_KEY } from '@/services/appointmentStore';
+import { createFakeNotifications } from '@/services/notificationsFake';
 
-import { LOAD_ERROR, resetAppointmentsForTests, toFields, useAppointments } from './appointments';
+import {
+  LOAD_ERROR,
+  notificationsSettled,
+  resetAppointmentsForTests,
+  toFields,
+  useAppointments,
+} from './appointments';
 
 // Fixed clocks at the day edges (Jest runs in America/Los_Angeles). Never the real clock.
 const LATE_EVENING = new Date('2026-09-25T23:15:00-07:00');
@@ -32,8 +39,10 @@ beforeEach(async () => {
   jest.restoreAllMocks();
   jest.clearAllMocks();
   await AsyncStorage.clear();
-  resetAppointmentsForTests(() => LATE_EVENING);
+  resetAppointmentsForTests(() => LATE_EVENING, createFakeNotifications());
 });
+
+afterEach(() => notificationsSettled());
 
 describe('toFields', () => {
   it('turns the picker Date into an ISO string with offset for the same instant', () => {
@@ -82,7 +91,7 @@ describe('useAppointments', () => {
 
   it('reloads persisted appointments after a restart', async () => {
     const id = await useAppointments.getState().add(draft);
-    resetAppointmentsForTests(() => LATE_EVENING);
+    resetAppointmentsForTests(() => LATE_EVENING, createFakeNotifications());
     expect(useAppointments.getState().byId(id)).toBeUndefined();
 
     await useAppointments.getState().hydrate();
@@ -122,7 +131,7 @@ describe('useAppointments', () => {
       kept: ['just-now', 'later'],
     },
   ])('prunes before local midnight on load and saves the result at $name', async (c) => {
-    resetAppointmentsForTests(() => c.now);
+    resetAppointmentsForTests(() => c.now, createFakeNotifications());
     await AsyncStorage.setItem(
       STORAGE_KEY,
       JSON.stringify(c.stored.map(([id, at]) => storedAppt(id, new Date(at)))),

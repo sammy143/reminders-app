@@ -25,7 +25,10 @@ export interface Appointment {
   inPerson: boolean;
   intensity: Intensity;
   status: AppointmentStatus;
-  /** Scheduled notification ids, kept for cancellation. */
+  /**
+   * Unused, always `[]`: F006 reconciles against the OS's scheduled list by key instead
+   * (docs/exec-plans F006 "Decisions"). Remove with the next storage migration (docs/tech-debt.md).
+   */
   notificationIds: string[];
   /** Pre-generated lines (v2). */
   lines?: string[];

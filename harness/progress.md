@@ -104,3 +104,14 @@ Newest entry at the bottom. Each session appends one entry:
   no Date.now()/new Date() in tests or src/, with an allowlist of clock.ts only.
 - Verified: reproduced by pinning Date to 23:15. The suite passes with the real clock and with Date pinned to 23:15, 00:10 and 2027 (193 tests).
 - Next: waiting on the user's Expo Go check to close F005.
+
+## 2026-09-25 — F006 — PASS-PENDING-HUMAN
+- Did: the notification series stays in sync with the OS: a pure plan and diff in domain/ (next 2 in-person series,
+  20 other reminders, cap 60, series:<id>:<step> identifiers), a guarded deep-import expo-notifications
+  adapter plus a web no-op in services/, and serialised sync in state/ on hydrate, save, edit, delete and foreground.
+  Permission is asked on first save; a "Notifications are off" banner shows on Home.
+- Verified: verifier PASS-PENDING-HUMAN twice (13 breakages caught). Reviewer: 2 blockers fixed and re-confirmed
+  (the Android Expo Go import crash via DevicePushTokenAutoRegistration.fx; Android 13+ never asking).
+  Round 2 kept "denied" sticky. check.sh 270 tests. The architecture check traces the expo-notifications require graph.
+- Next: the user's combined Expo Go checklist for F005 + F006 (in PR). Then F007.
+- Blockers/notes: device-only: foreground display, Android exact vs. inexact timing in Expo Go, iOS data.at.
