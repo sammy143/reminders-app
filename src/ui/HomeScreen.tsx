@@ -20,7 +20,10 @@ interface HomeScreenProps {
 
 /** Today list (docs/design/screens/home.png; streak, tabs and settings are later features). */
 export function HomeScreen({ onAdd, onOpen }: HomeScreenProps) {
-  const now = useNow();
+  const now = useNow(
+    15_000,
+    useAppointments((s) => s.clock),
+  );
   const appointments = useAppointments((s) => s.appointments);
   const hydrated = useAppointments((s) => s.hydrated);
   const loadError = useAppointments((s) => s.loadError);

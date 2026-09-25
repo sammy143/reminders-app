@@ -12,8 +12,12 @@ import { prunePast } from '@/domain/today';
 import { loadAppointments, saveAppointments } from '@/services/appointmentStore';
 import type { Appointment } from '@/types';
 
+import { systemClock, type Clock } from './clock';
+
 interface AppointmentsState {
   appointments: Appointment[];
+  /** Where "now" comes from (pruning on load, Home's countdowns). Tests set a fixed one. */
+  clock: Clock;
   /** True once loading finished, whether it worked or not. */
   hydrated: boolean;
   /** Set when stored appointments couldn't be read; cleared by a later successful load. */
@@ -66,7 +70,7 @@ export const useAppointments = create<AppointmentsState>()((set, get) => {
   const load = async () => {
     try {
       const stored = await loadAppointments();
-      const appointments = prunePast(stored, new Date());
+      const appointments = prunePast(stored, get().clock());
       set({ appointments, hydrated: true, loadError: null });
       if (appointments.length !== stored.length) {
         await saveAppointments(appointments).catch(() => {
@@ -81,6 +85,7 @@ export const useAppointments = create<AppointmentsState>()((set, get) => {
 
   return {
     appointments: [],
+    clock: systemClock,
     hydrated: false,
     loadError: null,
     hydrate: () => (hydrating ??= load()),
@@ -96,8 +101,11 @@ export const useAppointments = create<AppointmentsState>()((set, get) => {
   };
 });
 
-/** Test helper: forget loaded state so the next `hydrate()` reads storage again. */
-export function resetAppointmentsForTests(): void {
+/**
+ * Test helper: forget loaded state so the next `hydrate()` reads storage again, and use `clock`
+ * as "now". Required, so tests can't fall back to the real clock.
+ */
+export function resetAppointmentsForTests(clock: Clock): void {
   hydrating = null;
-  useAppointments.setState({ appointments: [], hydrated: false, loadError: null });
+  useAppointments.setState({ appointments: [], hydrated: false, loadError: null, clock });
 }

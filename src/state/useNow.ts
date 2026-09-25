@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 
-/** Current time, refreshed every `intervalMs`. The one place UI reads the clock. */
-export function useNow(intervalMs = 15_000): Date {
-  const [now, setNow] = useState(() => new Date());
+import { systemClock, type Clock } from './clock';
+
+/** Current time from `clock`, refreshed every `intervalMs`. The one way UI reads the time. */
+export function useNow(intervalMs = 15_000, clock: Clock = systemClock): Date {
+  const [now, setNow] = useState(clock);
   useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), intervalMs);
+    const timer = setInterval(() => setNow(clock()), intervalMs);
     return () => clearInterval(timer);
-  }, [intervalMs]);
+  }, [intervalMs, clock]);
   return now;
 }

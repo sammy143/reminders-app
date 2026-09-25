@@ -5,11 +5,13 @@ import { STORAGE_KEY } from '@/services/appointmentStore';
 
 import { LOAD_ERROR, resetAppointmentsForTests, toFields, useAppointments } from './appointments';
 
-// Tomorrow, so load-time pruning of past appointments never removes it.
-const tomorrow = new Date(Date.now() + 24 * 60 * 60_000);
+// Fixed clocks at the day edges (Jest runs in America/Los_Angeles). Never the real clock.
+const LATE_EVENING = new Date('2026-09-25T23:15:00-07:00');
+const AFTER_MIDNIGHT = new Date('2026-09-26T00:10:00-07:00');
+
 const draft: AppointmentDraft = {
   title: ' Dentist ',
-  startsAt: tomorrow,
+  startsAt: new Date('2026-09-26T15:00:00-07:00'),
   travelMinutes: 25,
   bufferMinutes: 5,
   inPerson: true,
@@ -30,7 +32,7 @@ beforeEach(async () => {
   jest.restoreAllMocks();
   jest.clearAllMocks();
   await AsyncStorage.clear();
-  resetAppointmentsForTests();
+  resetAppointmentsForTests(() => LATE_EVENING);
 });
 
 describe('toFields', () => {
@@ -80,7 +82,7 @@ describe('useAppointments', () => {
 
   it('reloads persisted appointments after a restart', async () => {
     const id = await useAppointments.getState().add(draft);
-    resetAppointmentsForTests();
+    resetAppointmentsForTests(() => LATE_EVENING);
     expect(useAppointments.getState().byId(id)).toBeUndefined();
 
     await useAppointments.getState().hydrate();
@@ -97,18 +99,37 @@ describe('useAppointments', () => {
     expect(await stored()).toHaveLength(2);
   });
 
-  it('drops appointments from before today on load and saves the pruned list', async () => {
-    const day = 24 * 60 * 60_000;
+  it.each([
+    {
+      name: 'late evening (23:15)',
+      now: LATE_EVENING,
+      stored: [
+        ['yesterday-late', '2026-09-24T23:59:00-07:00'],
+        ['this-morning', '2026-09-25T00:00:00-07:00'],
+        ['tonight', '2026-09-25T23:50:00-07:00'],
+        ['after-midnight', '2026-09-26T00:30:00-07:00'],
+      ],
+      kept: ['this-morning', 'tonight', 'after-midnight'],
+    },
+    {
+      name: 'just after midnight (00:10)',
+      now: AFTER_MIDNIGHT,
+      stored: [
+        ['last-night', '2026-09-25T23:50:00-07:00'],
+        ['just-now', '2026-09-26T00:05:00-07:00'],
+        ['later', '2026-09-26T09:00:00-07:00'],
+      ],
+      kept: ['just-now', 'later'],
+    },
+  ])('prunes before local midnight on load and saves the result at $name', async (c) => {
+    resetAppointmentsForTests(() => c.now);
     await AsyncStorage.setItem(
       STORAGE_KEY,
-      JSON.stringify([
-        storedAppt('old', new Date(Date.now() - 2 * day)),
-        storedAppt('soon', new Date(Date.now() + day)),
-      ]),
+      JSON.stringify(c.stored.map(([id, at]) => storedAppt(id, new Date(at)))),
     );
     await useAppointments.getState().hydrate();
-    expect(useAppointments.getState().appointments.map((a) => a.id)).toEqual(['soon']);
-    expect((await stored()).map((a: { id: string }) => a.id)).toEqual(['soon']);
+    expect(useAppointments.getState().appointments.map((a) => a.id)).toEqual(c.kept);
+    expect((await stored()).map((a: { id: string }) => a.id)).toEqual(c.kept);
   });
 
   it('reports a load failure, refuses to overwrite storage, and retries later', async () => {

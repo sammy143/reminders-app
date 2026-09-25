@@ -27,6 +27,10 @@ Styling: NativeWind classes in `ui/` and `app/`, tokens from `docs/design/DESIGN
 - `ui/` never imports `services/` directly (go through `state/`).
 - `ui/` never imports `expo-router`: screens take navigation callbacks as props; routes in
   `app/` own the router (F005).
+- No real-clock reads (`Date.now()`, argument-less `new Date()`) in tests or in `src/`
+  (PRINCIPLES #8). Tests use a fixed time (inject `now`/a `Clock`, or `jest.useFakeTimers({ now })`);
+  domain takes `now` as a parameter. The only allowed read is `systemClock` in
+  `src/state/clock.ts` (the allowlist in the checker), which the store and `useNow` default to.
 - Files ≤ 300 lines.
 - No Anthropic API keys (`sk-ant-…`) anywhere in tracked source.
 

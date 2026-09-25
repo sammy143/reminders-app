@@ -97,3 +97,10 @@ Newest entry at the bottom. Each session appends one entry:
 - Next: the user runs the Expo Go check (steps in PR), then set passes: true and move the plan to completed/.
 - Blockers/notes: Expo Go/native untestable in the cloud sandbox. Countdown shows raw minutes for
   far-off events ("starts in 912 min"), logged in tech-debt.
+
+## 2026-09-25 — F005 — fix (user-reported, PR #5)
+- Did: HomeScreen.test failed from 22:30 to midnight (real clock + 90 min crossed into tomorrow). All
+  tests now use an injected Clock (src/state/clock.ts is the only real-clock read). New architecture rule:
+  no Date.now()/new Date() in tests or src/, with an allowlist of clock.ts only.
+- Verified: reproduced by pinning Date to 23:15. The suite passes with the real clock and with Date pinned to 23:15, 00:10 and 2027 (193 tests).
+- Next: waiting on the user's Expo Go check to close F005.

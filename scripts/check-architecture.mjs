@@ -23,6 +23,14 @@ const ALLOWED = {
 const PURE = new Set(['types', 'domain']);
 const PLATFORM_PKG = /^(react|react-native|expo)(-[\w-]+)?(\/|$)|^@react-native|^@expo\//;
 const SECRET = /sk-ant-[A-Za-z0-9_-]{10,}/;
+// Real-clock reads (PRINCIPLES #8: time is injected). `Date.now()` or an argument-less
+// `new Date()` is banned in tests and in src/, except in the files below, which are the
+// app's only sources of "now". Keep this list short; document additions in ARCHITECTURE.md.
+const REAL_CLOCK = /\bDate\.now\s*\(|\bnew\s+Date\s*\(\s*\)/;
+const REAL_CLOCK_ALLOWLIST = new Set([
+  'src/state/clock.ts', // systemClock: the default Clock injected everywhere else
+]);
+const TEST_FILE = /\.test\.[cm]?[jt]sx?$/;
 const IMPORT_RE = /(?:import|export)\s[^'"]*?from\s*['"]([^'"]+)['"]|import\s*\(\s*['"]([^'"]+)['"]\s*\)|require\(\s*['"]([^'"]+)['"]\s*\)/g;
 
 const errors = [];
@@ -61,6 +69,16 @@ function checkFile(file) {
     fail(file, 'contains what looks like an Anthropic API key. Remove it; keys live only in the serverless proxy env (see AGENTS.md).');
   }
   if (!CODE_EXT.has(ext)) return;
+
+  const rel = relative(ROOT, file);
+  if (REAL_CLOCK.test(text)) {
+    if (TEST_FILE.test(file)) {
+      fail(file, 'reads the real clock (Date.now() / new Date()). Tests must use a fixed time: inject `now` or a Clock (e.g. resetAppointmentsForTests(() => FIXED)), or use jest.useFakeTimers({ now: FIXED }) (docs/PRINCIPLES.md #8).');
+    } else if (file.startsWith(SRC) && !REAL_CLOCK_ALLOWLIST.has(rel)) {
+      const where = layerOf(file) === 'domain' ? "domain/ must stay pure: take `now: Date` as a parameter." : 'Inject `now` or a Clock (src/state/clock.ts; useNow in UI) instead.';
+      fail(file, `reads the real clock (Date.now() / new Date()). ${where} Only ${[...REAL_CLOCK_ALLOWLIST].join(', ')} may (docs/PRINCIPLES.md #8, docs/ARCHITECTURE.md).`);
+    }
+  }
 
   const lines = text.split('\n').length;
   if (lines > MAX_LINES && file.startsWith(SRC)) {
