@@ -124,9 +124,10 @@ describe('cardStatus', () => {
     expect(s).toMatchObject({ cue: null, tone: 'done', mark: 'left' });
   });
 
-  it('keeps the countdown in the supportive tone, marked stuck, after "I\'m genuinely stuck"', () => {
+  it('shows the neutral start cue in the supportive tone, marked stuck, after "I\'m genuinely stuck"', () => {
     const s = cardStatus(appt({ status: 'stuck' }), new Date('2026-09-24T14:33:00Z'));
-    expect(s).toMatchObject({ cue: '3 min late', tone: 'supportive', mark: 'stuck' });
+    // 15:00Z is 8:00 in Los Angeles (Jest's zone): the neutral cue, not "3 min late".
+    expect(s).toMatchObject({ cue: 'starts at 8:00', tone: 'supportive', mark: 'stuck' });
   });
 
   it('has no mark otherwise', () => {

@@ -2,7 +2,7 @@ import type { Appointment, Intensity, LadderTone, SeriesStep, StepNumber, Tone }
 
 import { isListed, isPlanned } from './appointment';
 import { computeLeaveBy } from './leaveBy';
-import { formatCue, formatStartCue } from './lines/cue';
+import { formatCue, formatStartCue, formatStartsAtCue } from './lines/cue';
 import { withLines } from './lines/select';
 import { buildSeries, scheduledTone } from './series';
 import { supportiveSeries } from './stuck';
@@ -17,7 +17,10 @@ export type CardTone = Tone | 'done';
 
 export interface CardStatus {
   leaveBy: Date;
-  /** Live countdown ("leave in 12 min", "starts in 20 min"); null once the series is over. */
+  /**
+   * Live countdown ("leave in 12 min", "starts in 20 min"), or once stuck the neutral "starts at
+   * 3:00"; null once the series is over.
+   */
   cue: string | null;
   tone: CardTone;
   /** "I've left" or "I'm genuinely stuck" was pressed (a badge on the card); null otherwise. */
@@ -85,9 +88,13 @@ export function cardStatus(appt: Appointment, now: Date): CardStatus {
   const mark = appt.status === 'left' || appt.status === 'stuck' ? appt.status : null;
   const next = isPlanned(appt) ? buildSeries(appt, now)[0] : undefined;
   if (!next) return { leaveBy, cue: null, tone: 'done', mark };
-  const cue = appt.inPerson
-    ? formatCue((now.getTime() - leaveBy.getTime()) / MS_PER_MINUTE)
-    : formatStartCue((Date.parse(appt.startsAt) - now.getTime()) / MS_PER_MINUTE);
+  // Once stuck, no countdown or lateness: the same neutral cue as the supportive nags.
+  const cue =
+    mark === 'stuck'
+      ? formatStartsAtCue(new Date(appt.startsAt))
+      : appt.inPerson
+        ? formatCue((now.getTime() - leaveBy.getTime()) / MS_PER_MINUTE)
+        : formatStartCue((Date.parse(appt.startsAt) - now.getTime()) / MS_PER_MINUTE);
   return { leaveBy, cue, tone: mark === 'stuck' ? 'supportive' : next.tone, mark };
 }
 

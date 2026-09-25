@@ -19,9 +19,9 @@ import type {
 import { z } from 'zod';
 
 import type { NotificationResponse } from '@/domain/notificationActions';
-import { NOTIFICATION_CATEGORIES } from '@/domain/notificationCategories';
 import type { PlannedNotification, ScheduledNotification } from '@/domain/notificationPlan';
 
+import { registerCategories } from './notificationCategoriesSetup';
 import {
   unavailableNotifications,
   type NotificationPermission,
@@ -50,6 +50,7 @@ export interface NotificationsApi {
     id: string,
     actions: NotificationAction[],
   ) => Promise<NotificationCategory>;
+  getNotificationCategoriesAsync: () => Promise<NotificationCategory[]>;
   addNotificationResponseReceivedListener: (
     listener: (response: ExpoNotificationResponse) => void,
   ) => { remove: () => void };
@@ -78,6 +79,7 @@ export function loadNotificationsApi(): NotificationsApi | null {
     const handler = require('expo-notifications/build/NotificationsHandler');
     const channels = require('expo-notifications/build/setNotificationChannelAsync');
     const categories = require('expo-notifications/build/setNotificationCategoryAsync');
+    const readCategories = require('expo-notifications/build/getNotificationCategoriesAsync');
     const emitter = require('expo-notifications/build/NotificationsEmitter');
     const dismissing = require('expo-notifications/build/dismissNotificationAsync');
     const presented = require('expo-notifications/build/getPresentedNotificationsAsync');
@@ -93,6 +95,7 @@ export function loadNotificationsApi(): NotificationsApi | null {
       setNotificationHandler: handler.setNotificationHandler,
       setNotificationChannelAsync: channels.setNotificationChannelAsync,
       setNotificationCategoryAsync: categories.setNotificationCategoryAsync,
+      getNotificationCategoriesAsync: readCategories.getNotificationCategoriesAsync,
       addNotificationResponseReceivedListener: emitter.addNotificationResponseReceivedListener,
       getLastNotificationResponse: emitter.getLastNotificationResponse,
       clearLastNotificationResponse: emitter.clearLastNotificationResponse,
@@ -145,19 +148,8 @@ export function createNotificationsPort(api: NotificationsApi | null): Notificat
           channel = null;
           throw error;
         });
-      categories ??= Promise.all(
-        NOTIFICATION_CATEGORIES.map((c) =>
-          api.setNotificationCategoryAsync(
-            c.id,
-            // Every button opens the app, so the response handler runs even after a kill (F007).
-            c.actions.map((a) => ({
-              identifier: a.id,
-              buttonTitle: a.title,
-              options: { opensAppToForeground: true },
-            })),
-          ),
-        ),
-      ).catch((error: unknown) => {
+      // One at a time, then verified (see registerCategories for the iOS race this avoids).
+      categories ??= registerCategories(api).catch((error: unknown) => {
         categories = null; // try again on the next setup
         console.warn('Notification buttons are unavailable', error);
       });

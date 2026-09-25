@@ -147,3 +147,15 @@ Newest entry at the bottom. Each session appends one entry:
 - Verified: verifier PASS-PENDING-HUMAN (7 stuck breakages caught; stale-types failure reproduced with the old
   command and passing with the new; fresh-clone typecheck passes; route check fires). check.sh 382 tests.
 - Next: the user's device check for F007, then F008.
+
+## 2026-09-25 — F007 — device check round 1 (user-run, iPhone Expo Go)
+- Result: steps 1, 3–9 passed; step 2 failed (no action buttons on long-press; in-app actions work).
+- Did: likely cause found in code: both notification categories were registered concurrently, and
+  the iOS native CategoryManager actor re-enters at `await loadCategories()`, so on a cold start the
+  last write can drop one category. Fix: register sequentially, read back with getNotificationCategoriesAsync,
+  retry once, warn naming any missing id, and log `[nag] notification categories: …` in dev.
+  Also: a stuck appointment's Home card shows "starts at h:mm" instead of the live countdown.
+- Verified: verifier PASS-PENDING-HUMAN (5 breakages caught; race confirmed from the Swift source).
+  Unconfirmed on Expo Go, which ships its own scoped categories module. check.sh 388 tests.
+- Next: the user re-tests step 2. If buttons still don't show with both categories logged, treat it as an
+  Expo Go limitation: document it, add it to F012 verify, and mark F007 as the user specified.

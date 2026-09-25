@@ -38,6 +38,12 @@ jest.mock('expo-notifications/build/setNotificationCategoryAsync', () => ({
     actions,
   })),
 }));
+jest.mock('expo-notifications/build/getNotificationCategoriesAsync', () => ({
+  getNotificationCategoriesAsync: jest.fn(async () => [
+    { identifier: 'nagSeries', actions: [] },
+    { identifier: 'nagSupportive', actions: [] },
+  ]),
+}));
 jest.mock('expo-notifications/build/NotificationsEmitter', () => ({
   DEFAULT_ACTION_IDENTIFIER: 'expo.modules.notifications.actions.DEFAULT',
   addNotificationResponseReceivedListener: jest.fn(() => ({ remove: jest.fn() })),

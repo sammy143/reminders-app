@@ -134,10 +134,10 @@ describe('HomeScreen', () => {
         stuckAt: '2026-09-25T23:14:00-07:00',
       },
     ]);
-    const card = screen.getByRole('button', {
-      name: /^Dentist, Stuck, Leave by 11:20, leave in 5 min/,
-    });
+    const card = screen.getByRole('button', { name: 'Dentist, Stuck, starts 11:50 PM' });
     expect(within(card).getByText('Stuck')).toBeTruthy();
+    expect(within(card).getByText('starts at 11:50')).toBeTruthy();
+    expect(within(card).queryByText(/leave|late|Leave by/)).toBeNull();
     expect(screen.getByText(/Supportive tone/i)).toBeTruthy();
     expect(screen.getByText(/starts at 11:50\.$/i)).toBeTruthy();
   });

@@ -44,6 +44,10 @@ const fakeApi = (): jest.Mocked<NotificationsApi> =>
       identifier,
       actions: [],
     })),
+    getNotificationCategoriesAsync: jest.fn(async () => [
+      { identifier: 'nagSeries', actions: [] },
+      { identifier: 'nagSupportive', actions: [] },
+    ]),
     addNotificationResponseReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
     getLastNotificationResponse: jest.fn(() => null),
     clearLastNotificationResponse: jest.fn(),
@@ -188,7 +192,8 @@ describe('notifications port', () => {
     await expect(port.setup()).resolves.toBeUndefined();
     expect(warn).toHaveBeenCalledWith('Notification buttons are unavailable', expect.any(Error));
     await port.setup();
-    expect(api.setNotificationCategoryAsync).toHaveBeenCalledTimes(4);
+    // The first attempt stopped at its failing first call; the retry registers both.
+    expect(api.setNotificationCategoryAsync).toHaveBeenCalledTimes(3);
     warn.mockRestore();
   });
 
