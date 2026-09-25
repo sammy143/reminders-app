@@ -178,3 +178,10 @@ Newest entry at the bottom. Each session appends one entry:
 - Verified: verifier PASS-PENDING-HUMAN twice (17 mutants caught on the final tree); the reviewer found no blockers,
   fixed in 1 round. check.sh 444 tests + checker tests.
 - Next: the user's Expo Go check (PR checklist), then F009.
+
+## 2026-09-25 — F008 — PASS (device-verified on iOS)
+- Result: the user ran the PR #8 checklist on iPhone (Expo Go); steps 1–9 passed (tab bar, persisted defaults,
+  prefilled form, mute silencing real nags across a restart, unmute restoring only future steps).
+- Verified: passes: true, note "device-verified on iOS; Android untested". Plan moved to completed/. The Android
+  check was added to the F007 Android tech-debt item (now F007 + F008).
+- Next: F009.

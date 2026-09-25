@@ -114,8 +114,8 @@
         "Mute today cancels today's series and suppresses scheduling until midnight",
         "bash scripts/check.sh passes"
       ],
-      "passes": false,
-      "notes": "pending device check (Expo Go): mute cancels/restores real notifications. Automated: settings persist, defaults prefill new form, mute plan/sync/banner verified."
+      "passes": true,
+      "notes": "device-verified on iOS; Android untested"
     },
     {
       "id": "F009",
