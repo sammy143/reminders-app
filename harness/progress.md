@@ -115,3 +115,13 @@ Newest entry at the bottom. Each session appends one entry:
   Round 2 kept "denied" sticky. check.sh 270 tests. The architecture check traces the expo-notifications require graph.
 - Next: the user's combined Expo Go checklist for F005 + F006 (in PR). Then F007.
 - Blockers/notes: device-only: foreground display, Android exact vs. inexact timing in Expo Go, iOS data.at.
+
+## 2026-09-25 — F005 + F006 — PASS (device-verified on iOS)
+- Did: the user ran the combined Expo Go checklist (PR #6) on an iPhone; every F005 + F006 step passed
+  (startup, persistence across restart, native pickers, notification series timing, edit and delete behaviour,
+  the permission banner).
+- Verified: both set to passes: true with the note "device-verified on iOS 2026-09-25; Android untested". Exec plans
+  moved to completed/.
+- Next: F007 ("I've left" / "I'm genuinely stuck").
+- Blockers/notes: the Android device check is outstanding (docs/tech-debt.md). The Android-specific fixes
+  (deep-import loader, 13+ permission mapping) are unit-tested but not device-tested.
