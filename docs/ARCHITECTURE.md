@@ -33,6 +33,15 @@ Styling: NativeWind classes in `ui/` and `app/`, tokens from `docs/design/DESIGN
   `src/state/clock.ts` (the allowlist in the checker), which the store and `useNow` default to.
 - Files ≤ 300 lines.
 - No Anthropic API keys (`sk-ant-…`) anywhere in tracked source.
+- `expo-notifications` is imported only by `src/services/notifications.ts`, and only from
+  `expo-notifications/build/<file>` modules, never the package root: the root runs
+  `DevicePushTokenAutoRegistration.fx`, which throws in Expo Go on Android. The checker traces
+  each deep module's require graph in node_modules (static imports, `import()` and `require`,
+  all platform variants, directory `index.*`) and fails if it reaches `build/index.js`, any `.fx`
+  module, or the package root, if a relative dependency resolves to no file, or if the module
+  no longer exists. `TRACE_NOTIFICATIONS=1 node scripts/check-architecture.mjs` prints the graphs.
+  The adapter loads them lazily in a try/catch; on failure notifications are `unavailable`.
+- Side-effect imports (`import 'x'`) count as imports for every rule.
 
 Failure messages explain the fix. If a rule is wrong, change the rule and this doc in the
 same commit and say why — don't work around it.

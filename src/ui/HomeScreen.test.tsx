@@ -1,9 +1,10 @@
-import { fireEvent, render, screen, within } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, within } from '@testing-library/react-native';
 
+import { createFakeNotifications } from '@/state/testing';
 import { resetAppointmentsForTests, useAppointments } from '@/state/appointments';
 import type { Appointment } from '@/types';
 
-import { HomeScreen } from './HomeScreen';
+import { HomeScreen, NOTIFICATIONS_OFF } from './HomeScreen';
 
 // Fixed clocks at the day edges (Jest runs in America/Los_Angeles). Never the real clock.
 const LATE_EVENING = new Date('2026-09-25T23:15:00-07:00');
@@ -27,7 +28,7 @@ const renderAt = async (
   appointments: Appointment[] = [],
   loadError: string | null = null,
 ) => {
-  resetAppointmentsForTests(() => now);
+  resetAppointmentsForTests(() => now, createFakeNotifications());
   useAppointments.setState({ hydrated: true, appointments, loadError });
   const onAdd = jest.fn();
   const onOpen = jest.fn();
@@ -100,5 +101,17 @@ describe('HomeScreen', () => {
     await renderAt(LATE_EVENING, [], 'Couldn’t load saved appointments.');
     expect(screen.getByRole('alert')).toHaveTextContent(/Couldn’t load saved appointments/);
     expect(screen.getByRole('button', { name: 'Add appointment' })).toBeTruthy();
+  });
+
+  it.each([
+    { permission: 'denied' as const, shown: true },
+    { permission: 'granted' as const, shown: false },
+    { permission: 'unavailable' as const, shown: false },
+    { permission: null, shown: false },
+  ])('shows the notifications-off banner only when denied ($permission)', async (c) => {
+    await renderAt(LATE_EVENING);
+    await act(() => useAppointments.setState({ notificationPermission: c.permission }));
+    expect(screen.queryByText(NOTIFICATIONS_OFF) !== null).toBe(c.shown);
+    expect(screen.getByText('Nothing to nag you about yet.')).toBeTruthy();
   });
 });

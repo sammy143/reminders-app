@@ -8,11 +8,15 @@ import {
   type AppointmentDraft,
   type AppointmentFields,
 } from '@/domain/appointment';
+import { timingChanged } from '@/domain/notificationPlan';
 import { prunePast } from '@/domain/today';
 import { loadAppointments, saveAppointments } from '@/services/appointmentStore';
+import { notifications as platformNotifications } from '@/services/notifications';
+import type { NotificationPermission, NotificationsPort } from '@/services/notificationsPort';
 import type { Appointment } from '@/types';
 
 import { systemClock, type Clock } from './clock';
+import { createSyncQueue, ensurePermission, nextPermission, syncNotifications } from './scheduler';
 
 interface AppointmentsState {
   appointments: Appointment[];
@@ -22,6 +26,17 @@ interface AppointmentsState {
   hydrated: boolean;
   /** Set when stored appointments couldn't be read; cleared by a later successful load. */
   loadError: string | null;
+  /** Local notifications (the platform adapter; tests set a fake). */
+  notifications: NotificationsPort;
+  /** Last permission seen by a sync; null before the first one. Home's banner reads it. */
+  notificationPermission: NotificationPermission | null;
+  /**
+   * Brings scheduled notifications in line with the appointments (docs/exec-plans F006). Runs
+   * after hydrate and every change, and on app foreground (the top-up). Never rejects: failures
+   * are logged, and saving never waits for or depends on it. `savedId` marks an appointment just
+   * added or re-timed, which asks for permission if needed and lets its due step fire now.
+   */
+  syncNotifications: (savedId?: string) => Promise<void>;
   /**
    * Loads stored appointments, dropping ones from before today (and saving that). Later calls
    * share the same promise; after a failure the next call tries again.
@@ -53,18 +68,44 @@ export const LOAD_ERROR = 'Couldn’t load saved appointments.';
 
 let hydrating: Promise<void> | null = null;
 
+/** One sync run: after a successful load only, so a failed load never cancels everything. */
+const runSync = async (justSaved: ReadonlySet<string>) => {
+  const { hydrate, notifications: port } = useAppointments.getState();
+  await hydrate();
+  if (useAppointments.getState().loadError) return;
+  const permission = await ensurePermission(port, justSaved.size > 0);
+  useAppointments.setState((state) => ({
+    notificationPermission: nextPermission(state.notificationPermission, permission),
+  }));
+  if (permission !== 'granted') return;
+  // Read state and "now" after the permission prompt, which can take a while.
+  const { appointments, clock } = useAppointments.getState();
+  const result = await syncNotifications(port, appointments, clock(), justSaved);
+  for (const { appointmentId, error } of result.skipped) {
+    console.warn(`Skipped notifications for appointment ${appointmentId}`, error);
+  }
+  if (result.errors.length > 0) {
+    console.warn('Some notifications could not be updated', result.errors);
+  }
+};
+
+let syncQueue = createSyncQueue(runSync);
+
 export const useAppointments = create<AppointmentsState>()((set, get) => {
   /**
    * Applies a change after a successful load, saves it, then updates state; if saving fails the
    * state is left as it was and the error propagates. Refuses to save while stored data couldn't
    * be read, so a failed load can never overwrite it.
    */
-  const mutate = async (change: (list: Appointment[]) => Appointment[]) => {
+  const mutate = async (
+    change: (list: Appointment[]) => { next: Appointment[]; savedId?: string },
+  ) => {
     await get().hydrate();
     if (get().loadError) throw new Error(LOAD_ERROR);
-    const next = change(get().appointments);
+    const { next, savedId } = change(get().appointments);
     await saveAppointments(next);
     set({ appointments: next });
+    void get().syncNotifications(savedId);
   };
 
   const load = async () => {
@@ -72,6 +113,7 @@ export const useAppointments = create<AppointmentsState>()((set, get) => {
       const stored = await loadAppointments();
       const appointments = prunePast(stored, get().clock());
       set({ appointments, hydrated: true, loadError: null });
+      void get().syncNotifications();
       if (appointments.length !== stored.length) {
         await saveAppointments(appointments).catch(() => {
           // Pruning is housekeeping; the next successful save persists it.
@@ -88,24 +130,52 @@ export const useAppointments = create<AppointmentsState>()((set, get) => {
     clock: systemClock,
     hydrated: false,
     loadError: null,
+    notifications: platformNotifications,
+    notificationPermission: null,
+    syncNotifications: (savedId) =>
+      syncQueue.request(savedId).catch((error: unknown) => {
+        console.warn('Notification sync failed', error);
+      }),
     hydrate: () => (hydrating ??= load()),
     add: async (draft) => {
       const appt = newAppointment(toFields(draft), randomUUID());
-      await mutate((list) => [...list, appt]);
+      await mutate((list) => ({ next: [...list, appt], savedId: appt.id }));
       return appt.id;
     },
     update: (id, draft) =>
-      mutate((list) => list.map((a) => (a.id === id ? applyEdit(a, toFields(draft)) : a))),
-    remove: (id) => mutate((list) => list.filter((a) => a.id !== id)),
+      mutate((list) => {
+        const before = list.find((a) => a.id === id);
+        const edited = before && applyEdit(before, toFields(draft));
+        return {
+          next: list.map((a) => (a === before && edited ? edited : a)),
+          // Only a timing edit may re-fire the due step (docs/exec-plans F006 "Decisions").
+          savedId: before && edited && timingChanged(before, edited) ? id : undefined,
+        };
+      }),
+    remove: (id) => mutate((list) => ({ next: list.filter((a) => a.id !== id) })),
     byId: (id) => get().appointments.find((a) => a.id === id),
   };
 });
 
+/** Resolves once every requested notification sync has finished. */
+export function notificationsSettled(): Promise<void> {
+  return syncQueue.idle();
+}
+
 /**
- * Test helper: forget loaded state so the next `hydrate()` reads storage again, and use `clock`
- * as "now". Required, so tests can't fall back to the real clock.
+ * Test helper: forget loaded state so the next `hydrate()` reads storage again, use `clock` as
+ * "now" and `notifications` as the port. Both required, so tests can't fall back to the real
+ * clock or real notifications.
  */
-export function resetAppointmentsForTests(clock: Clock): void {
+export function resetAppointmentsForTests(clock: Clock, notifications: NotificationsPort): void {
   hydrating = null;
-  useAppointments.setState({ appointments: [], hydrated: false, loadError: null, clock });
+  syncQueue = createSyncQueue(runSync);
+  useAppointments.setState({
+    appointments: [],
+    hydrated: false,
+    loadError: null,
+    clock,
+    notifications,
+    notificationPermission: null,
+  });
 }

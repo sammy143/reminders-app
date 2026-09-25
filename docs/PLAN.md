@@ -57,7 +57,7 @@ interface Appointment {
   inPerson: boolean;
   intensity: Intensity;
   status: AppointmentStatus;
-  notificationIds: string[]; // for cancellation
+  notificationIds: string[]; // unused, always [] (F006 matches the OS list by key); drop at next storage migration
   lines?: string[];          // pre-generated insults (v2)
   source: AppointmentSource;
   calendarEventId?: string;
@@ -89,6 +89,11 @@ recent missed step immediately, then the rest; earlier missed steps are skipped.
 - **iOS keeps only 64 pending local notifications.** Schedule series for the next
   ~2 upcoming in-person events only; top up on app foreground (and background fetch later).
 - **Android 12+ exact alarms / doze** can delay notifications → test on a real device.
+  expo-notifications uses exact alarms only when `canScheduleExactAlarms()`; otherwise Android
+  may batch the ladder by minutes. **In Expo Go the ladder may arrive inexactly** (Expo Go's own
+  permissions apply). Dev builds declare `SCHEDULE_EXACT_ALARM` (app.json); on Android 14+ it is
+  denied by default and the user must allow "Alarms & reminders" in system settings (prompting for
+  it is dev-build milestone work, see docs/tech-debt.md).
 - Notification action button ("I've left") via `setNotificationCategoryAsync`.
 - App must stay usable with notifications disabled (in-app list + banner).
 

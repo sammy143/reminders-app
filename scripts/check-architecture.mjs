@@ -31,7 +31,13 @@ const REAL_CLOCK_ALLOWLIST = new Set([
   'src/state/clock.ts', // systemClock: the default Clock injected everywhere else
 ]);
 const TEST_FILE = /\.test\.[cm]?[jt]sx?$/;
-const IMPORT_RE = /(?:import|export)\s[^'"]*?from\s*['"]([^'"]+)['"]|import\s*\(\s*['"]([^'"]+)['"]\s*\)|require\(\s*['"]([^'"]+)['"]\s*\)/g;
+// expo-notifications: its package root runs DevicePushTokenAutoRegistration.fx, which throws in
+// Expo Go on Android. Only the adapter may import it, and only from build/<file> modules whose
+// require graph never reaches the root index or any .fx module (traced below).
+const NOTIFICATIONS_ADAPTER = 'src/services/notifications.ts';
+const NOTIFICATIONS_PKG = /^expo-notifications(\/|$)/;
+const NOTIFICATIONS_DEEP = /^expo-notifications\/build\/[\w.]+$/;
+const IMPORT_RE = /(?:import|export)\s[^'"]*?from\s*['"]([^'"]+)['"]|import\s*\(\s*['"]([^'"]+)['"]\s*\)|require\(\s*['"]([^'"]+)['"]\s*\)|^\s*import\s*['"]([^'"]+)['"]/gm;
 
 const errors = [];
 const fail = (file, msg) => errors.push(`${relative(ROOT, file)}: ${msg}`);
@@ -60,6 +66,73 @@ function resolveImport(file, spec) {
   return null; // package import
 }
 
+const PLATFORM_EXTS = ['.js', '.native.js', '.ios.js', '.android.js'];
+const COMMENTS = /\/\*[\s\S]*?\*\/|(^|[^:])\/\/.*$/gm;
+const DEP_RE = /(?:import|export)\s[^'"]*?from\s*['"]([^'"]+)['"]|import\s*['"]([^'"]+)['"]|import\s*\(\s*['"]([^'"]+)['"]\s*\)|require\(\s*['"]([^'"]+)['"]\s*\)/g;
+const traced = new Map();
+
+/** Every platform variant a relative specifier can load: file as written, with extensions, or dir/index. */
+function resolveVariants(base) {
+  const isFile = (f) => existsSync(f) && statSync(f).isFile();
+  const stem = base.replace(/\.js$/, '');
+  const found = [base, ...PLATFORM_EXTS.map((e) => stem + e)].filter(isFile);
+  if (found.length === 0 && existsSync(base) && statSync(base).isDirectory()) {
+    return PLATFORM_EXTS.map((e) => join(base, 'index' + e)).filter(isFile);
+  }
+  return [...new Set(found)];
+}
+
+/**
+ * Files of expo-notifications that `spec` pulls in, following relative imports (static, dynamic,
+ * require) on every platform. A relative import that resolves to no file is reported, never skipped.
+ */
+function traceNotificationsModule(spec) {
+  if (traced.has(spec)) return traced.get(spec);
+  const build = join(ROOT, 'node_modules', 'expo-notifications', 'build');
+  const seen = new Set();
+  const bare = new Set();
+  const unresolved = [];
+  const stack = resolveVariants(join(build, spec.replace('expo-notifications/build/', '')));
+  const missing = stack.length === 0;
+  while (stack.length) {
+    const f = stack.pop();
+    if (seen.has(f)) continue;
+    seen.add(f);
+    const code = readFileSync(f, 'utf8').replace(COMMENTS, '$1');
+    for (const m of code.matchAll(DEP_RE)) {
+      const dep = m[1] || m[2] || m[3] || m[4];
+      if (!dep.startsWith('.')) {
+        bare.add(dep);
+        continue;
+      }
+      const targets = resolveVariants(resolve(dirname(f), dep));
+      if (targets.length === 0) unresolved.push(`${relative(build, f)} → '${dep}'`);
+      stack.push(...targets);
+    }
+  }
+  const files = [...seen].map((f) => relative(build, f));
+  const forbidden = files.filter((f) => /^index\.|\.fx\./.test(f));
+  if ([...bare].some((d) => NOTIFICATIONS_PKG.test(d))) forbidden.push('expo-notifications (package root)');
+  const result = { missing, files, forbidden, unresolved };
+  traced.set(spec, result);
+  return result;
+}
+
+function checkNotificationsImport(file, rel, spec) {
+  if (rel !== NOTIFICATIONS_ADAPTER) {
+    fail(file, `imports '${spec}'. Only ${NOTIFICATIONS_ADAPTER} may import expo-notifications; go through the NotificationsPort (docs/ARCHITECTURE.md).`);
+    return;
+  }
+  if (!NOTIFICATIONS_DEEP.test(spec)) {
+    fail(file, `imports '${spec}'. Import expo-notifications/build/<file> modules only: the package root runs DevicePushTokenAutoRegistration.fx, which throws in Expo Go on Android (docs/ARCHITECTURE.md).`);
+    return;
+  }
+  const { missing, forbidden, unresolved } = traceNotificationsModule(spec);
+  if (missing) fail(file, `imports '${spec}', which doesn't exist in node_modules (did an SDK upgrade move it? see docs/tech-debt.md).`);
+  if (unresolved.length) fail(file, `imports '${spec}', whose require graph can't be fully traced: ${unresolved.join('; ')}. Teach resolveVariants that layout, don't skip it (docs/ARCHITECTURE.md).`);
+  if (forbidden.length) fail(file, `imports '${spec}', whose require graph reaches ${forbidden.join(', ')}. Pick a module that doesn't (docs/ARCHITECTURE.md).`);
+}
+
 function checkFile(file) {
   const ext = extname(file);
   let text;
@@ -85,10 +158,15 @@ function checkFile(file) {
     fail(file, `${lines} lines > ${MAX_LINES}. Split it by responsibility (docs/PRINCIPLES.md #10).`);
   }
 
+  for (const m of text.matchAll(IMPORT_RE)) {
+    const spec = m[1] || m[2] || m[3] || m[4];
+    if (NOTIFICATIONS_PKG.test(spec)) checkNotificationsImport(file, rel, spec);
+  }
+
   const layer = layerOf(file);
   if (!layer) return;
   for (const m of text.matchAll(IMPORT_RE)) {
-    const spec = m[1] || m[2] || m[3];
+    const spec = m[1] || m[2] || m[3] || m[4];
     if (PURE.has(layer) && PLATFORM_PKG.test(spec)) {
       fail(file, `'${layer}/' must stay pure but imports '${spec}'. Move platform code to services/ and pass data in (docs/ARCHITECTURE.md).`);
       continue;
@@ -125,5 +203,8 @@ files.forEach(checkFile);
 if (errors.length) {
   console.error(`Architecture check failed (${errors.length}):\n` + errors.map((e) => `  ✗ ${e}`).join('\n'));
   process.exit(args.length ? 2 : 1); // exit 2 = feed back to agent when run from a hook
+}
+if (process.env.TRACE_NOTIFICATIONS) {
+  for (const [spec, { files: graph }] of traced) console.log(`${spec}: ${graph.join(', ')}`);
 }
 console.log(`architecture ok (${files.length} files)`);
