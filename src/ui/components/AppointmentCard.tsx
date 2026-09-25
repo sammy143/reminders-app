@@ -13,15 +13,19 @@ interface AppointmentCardProps {
   onPress: () => void;
 }
 
+const MARK_BADGE = { left: 'Left ✓', stuck: 'Stuck' } as const;
+
 /**
  * Home card: tone edge bar, title + in-person/online badge, "Leave by h:mm · <countdown>" (only
  * the countdown in the tone colour, per DESIGN.md), start time and a small Nag. Muted with no
- * subline once the series is over (F005 plan).
+ * subline once the series is over (F005 plan). After "I've left" the badge reads "Left ✓" (in
+ * `tone-done`, not muted); after "I'm genuinely stuck" it reads "Stuck" (supportive) (F007).
  */
 export function AppointmentCard({ appointment: a, status, onPress }: AppointmentCardProps) {
   const t = TONE[status.tone];
   const over = status.cue === null;
-  const badge = a.inPerson ? 'In person' : 'Online';
+  const muted = over && status.mark !== 'left';
+  const badge = status.mark ? MARK_BADGE[status.mark] : a.inPerson ? 'In person' : 'Online';
   const lead = a.inPerson ? `Leave by ${formatShortTime(status.leaveBy)}` : 'Online';
   const start = formatTime(new Date(a.startsAt));
   // The badge already says "Online", so an online card's label skips the repeated lead.
@@ -32,7 +36,7 @@ export function AppointmentCard({ appointment: a, status, onPress }: Appointment
       role="button"
       aria-label={label}
       onPress={onPress}
-      className={`flex-row overflow-hidden rounded-card border border-line bg-surface ${over ? 'opacity-60' : ''}`}
+      className={`flex-row overflow-hidden rounded-card border border-line bg-surface ${muted ? 'opacity-60' : ''}`}
     >
       <View className={`w-1.5 ${t.bg}`} />
       <View className="flex-1 flex-row items-start gap-3 p-4 pl-5">

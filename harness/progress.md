@@ -125,3 +125,16 @@ Newest entry at the bottom. Each session appends one entry:
 - Next: F007 ("I've left" / "I'm genuinely stuck").
 - Blockers/notes: the Android device check is outstanding (docs/tech-debt.md). The Android-specific fixes
   (deep-import loader, 13+ permission mapping) are unit-tested but not device-tested.
+
+## 2026-09-25 — F007 — PASS-PENDING-HUMAN
+- Did: "I've left" (marks left, cancels the remaining series, dismisses delivered nags) and "I'm genuinely stuck"
+  (remaining steps switch to supportive lines and category) from the notification action buttons (nagSeries/nagSupportive
+  categories, warm + cold-start responses) and in the app via a new alarm screen (active-alarm.png, per-tone
+  contrast colours, WCAG test). Online events never reach the alarm. Moving the start time resets left/stuck only if the new
+  series hasn't started. Home shows "Left ✓"/"Stuck" badges.
+- Also: cherry-picked d525920 (F005/F006 passes:true etc.), which PR #6 merged without.
+- Verified: verifier PASS-PENDING-HUMAN twice (21 mutants caught). The reviewer's blocker (tapping an online reminder
+  opened the escalation alarm) was fixed and re-confirmed; 2 fix rounds. check.sh 365 tests.
+- Next: the user's Expo Go check (PR checklist), then F008.
+- Blockers/notes: device-only: Expo Go category/action buttons (esp. Android), cold-start navigation, tray clean-up.
+  Open product question: should the supportive series keep ending every line in "N min late"?

@@ -31,3 +31,5 @@ Update this folder before changing UI code; the reviewer checks UI against it.
 - Home card "Leave by 2:30 · 12 min drive": the second part should be the countdown
   ("leave in 12 min"), per DESIGN.md.
 - Toggle on-color: ink-black for normal toggles, indigo only for supportive mode (as shown).
+- Active alarm: text colour per tone for contrast, a white primary button, a small Back control and no
+  added quote marks around Nag's line — see DESIGN.md "Alarm screen" (F007).

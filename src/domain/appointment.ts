@@ -1,5 +1,7 @@
 import type { Appointment, Intensity } from '@/types';
 
+import { computeLeaveBy } from './leaveBy';
+
 const MS_PER_MINUTE = 60_000;
 const OFFSET_DATE_TIME =
   /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?(?:Z|[+-](\d{2}):(\d{2}))$/;
@@ -76,9 +78,89 @@ export function newAppointment(fields: AppointmentFields, id: string): Appointme
   };
 }
 
-/** Applies edited fields; keeps id, status, source and notification ids. */
-export function applyEdit(appt: Appointment, fields: AppointmentFields): Appointment {
-  return { ...appt, ...normalise(fields) };
+/**
+ * Applies edited fields; keeps id, source and notification ids. A real reschedule of a `left` or
+ * `stuck` appointment (`isReschedule`) sets it back to `scheduled`: the event starts a fresh series.
+ * Anything else keeps the status (docs/exec-plans F007 "Decisions").
+ */
+export function applyEdit(appt: Appointment, fields: AppointmentFields, now: Date): Appointment {
+  const edited = { ...appt, ...normalise(fields) };
+  return isReschedule(appt, edited, now) ? { ...edited, status: 'scheduled' } : edited;
+}
+
+/** Step 1 fires this long before leaveBy (docs/PLAN.md "Escalation schedule"). */
+export const FIRST_STEP_MINUTES = -30;
+
+/**
+ * True when an edit really reschedules a `left` or `stuck` appointment: `startsAt` moves and the
+ * new series hasn't begun yet (its step 1, leaveBy − 30 min, is still after `now`). Fixing a
+ * slightly-off start after leaving, or tweaking travel or buffer, keeps the status, so it never
+ * resumes the ladder.
+ */
+export function isReschedule(
+  before: Pick<Appointment, 'startsAt' | 'status'>,
+  after: Pick<Appointment, 'startsAt' | 'travelMinutes' | 'bufferMinutes'>,
+  now: Date,
+): boolean {
+  if (before.status !== 'left' && before.status !== 'stuck') return false;
+  if (Date.parse(before.startsAt) === Date.parse(after.startsAt)) return false;
+  const firstStep = computeLeaveBy(after).getTime() + FIRST_STEP_MINUTES * MS_PER_MINUTE;
+  return firstStep > now.getTime();
+}
+
+type Timing = Pick<Appointment, 'startsAt' | 'travelMinutes' | 'bufferMinutes' | 'inPerson'>;
+
+/**
+ * True when an edit moves the series (start, travel, buffer, in person), so the saved
+ * appointment's due step may fire again. A title- or intensity-only edit never re-fires it.
+ */
+export function timingChanged(before: Timing, after: Timing): boolean {
+  return (
+    Date.parse(before.startsAt) !== Date.parse(after.startsAt) ||
+    before.travelMinutes !== after.travelMinutes ||
+    before.bufferMinutes !== after.bufferMinutes ||
+    before.inPerson !== after.inPerson
+  );
+}
+
+/**
+ * Statuses that still get notifications: the ladder (`scheduled`, `snoozed`) or its supportive
+ * version (`stuck`). `left` and `done` get nothing.
+ */
+export function isPlanned(appt: Pick<Appointment, 'status'>): boolean {
+  return appt.status === 'scheduled' || appt.status === 'snoozed' || appt.status === 'stuck';
+}
+
+/** Statuses Home lists: everything planned, plus `left` (shown with a "Left ✓" badge). */
+export function isListed(appt: Pick<Appointment, 'status'>): boolean {
+  return isPlanned(appt) || appt.status === 'left';
+}
+
+/**
+ * Only in-person events escalate (PLAN rule 2), so only they have an alarm, the series buttons and
+ * the "I've left" / "I'm genuinely stuck" transitions. The one rule for Home, the alarm screen,
+ * planning and notification responses.
+ */
+export function hasAlarm(appt: Pick<Appointment, 'inPerson'>): boolean {
+  return appt.inPerson;
+}
+
+/**
+ * "I've left" (PLAN rule 1; until v3 the button cancels the series): a planned appointment with an
+ * alarm becomes `left`. Anything else is returned unchanged (the same object).
+ */
+export function markLeft(appt: Appointment): Appointment {
+  return hasAlarm(appt) && isPlanned(appt) ? { ...appt, status: 'left' } : appt;
+}
+
+/**
+ * "I'm genuinely stuck" (PLAN rule 5): the remaining series turns supportive. Only a `scheduled`
+ * or `snoozed` appointment with an alarm changes; anything else is returned unchanged (the same object).
+ */
+export function markStuck(appt: Appointment): Appointment {
+  return hasAlarm(appt) && (appt.status === 'scheduled' || appt.status === 'snoozed')
+    ? { ...appt, status: 'stuck' }
+    : appt;
 }
 
 /**

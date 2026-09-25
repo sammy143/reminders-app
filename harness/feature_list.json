@@ -103,7 +103,7 @@
         "bash scripts/check.sh passes"
       ],
       "passes": false,
-      "notes": ""
+      "notes": "pending device check (Expo Go). Automated: left/stuck via store, notification responses (warm + cold start) and in-app alarm screen verified; online events never reach the alarm."
     },
     {
       "id": "F008",

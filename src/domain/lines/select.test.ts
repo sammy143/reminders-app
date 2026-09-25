@@ -2,7 +2,7 @@ import type { Intensity, SeriesStep } from '@/types';
 
 import { buildSeries, type SeriesInput } from '../series';
 import { BANK } from './bank';
-import { fillCue, stableHash, withLines, type LineInput } from './select';
+import { fillCue, stableHash, toSupportive, withLines, type LineInput } from './select';
 
 // startsAt 15:00Z, travel 25 + buffer 5 → leaveBy 14:30Z; steps at 14:00, 14:20, 14:30, 14:33, 14:36, 14:40.
 const base: SeriesInput = {
@@ -174,5 +174,51 @@ describe('stableHash', () => {
     expect(stableHash('')).toBe(0x811c9dc5);
     expect(stableHash('a')).toBe(0xe40c292c);
     expect(stableHash('foobar')).toBe(0xbf9cf968);
+  });
+});
+
+describe('supportive lines (F007)', () => {
+  const stuckLines = (input: SeriesInput, id: string, now: Date) =>
+    withLines(toSupportive(buildSeries(input, now)), appt(input, id));
+
+  it('keeps step, time and offset, and switches the tone to supportive', () => {
+    const steps = buildSeries(base, EARLY);
+    expect(toSupportive(steps)).toEqual(steps.map((s) => ({ ...s, tone: 'supportive' })));
+  });
+
+  it('takes lines from the supportive cell, each with its leave cue', () => {
+    for (const intensity of INTENSITIES) {
+      const input = { ...base, intensity };
+      const messages = stuckLines(input, 'appt-1', EARLY);
+      expect(messages).toHaveLength(6);
+      const templates = BANK.supportive[intensity].map((t) => t.replace('{cue}', ''));
+      for (const m of messages) {
+        expect(m.tone).toBe('supportive');
+        expect(m.text).toMatch(LEAVE_CUE);
+        expect(templates).toContain(m.text.replace(CUE, '.'));
+      }
+    }
+  });
+
+  it('never repeats a line within a series, for any id, intensity or now', () => {
+    for (const id of IDS) {
+      for (const intensity of INTENSITIES) {
+        for (const now of NOWS) {
+          const texts = stuckLines({ ...base, intensity }, id, now).map((m) =>
+            m.text.replace(CUE, ''),
+          );
+          expect(new Set(texts).size).toBe(texts.length);
+        }
+      }
+    }
+  });
+
+  it('gives a step the same line before and after earlier steps drop out', () => {
+    const early = stuckLines(base, 'appt-1', EARLY);
+    const late = stuckLines(base, 'appt-1', new Date('2026-09-24T14:34:00Z'));
+    for (const m of late.filter((l) => l.at.getTime() > Date.parse('2026-09-24T14:34:00Z'))) {
+      const before = early.find((e) => e.step === m.step);
+      expect(m.text.replace(CUE, '')).toBe(before?.text.replace(CUE, ''));
+    }
   });
 });

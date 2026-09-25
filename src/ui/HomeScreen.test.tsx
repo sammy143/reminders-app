@@ -10,7 +10,12 @@ import { HomeScreen, NOTIFICATIONS_OFF } from './HomeScreen';
 const LATE_EVENING = new Date('2026-09-25T23:15:00-07:00');
 const AFTER_MIDNIGHT = new Date('2026-09-26T00:10:00-07:00');
 
-const appt = (id: string, title: string, startsAt: string): Appointment => ({
+const appt = (
+  id: string,
+  title: string,
+  startsAt: string,
+  status: Appointment['status'] = 'scheduled',
+): Appointment => ({
   id,
   title,
   startsAt,
@@ -18,7 +23,7 @@ const appt = (id: string, title: string, startsAt: string): Appointment => ({
   bufferMinutes: 5,
   inPerson: true,
   intensity: 'spicy',
-  status: 'scheduled',
+  status,
   notificationIds: [],
   source: 'manual',
 });
@@ -32,8 +37,9 @@ const renderAt = async (
   useAppointments.setState({ hydrated: true, appointments, loadError });
   const onAdd = jest.fn();
   const onOpen = jest.fn();
-  await render(<HomeScreen onAdd={onAdd} onOpen={onOpen} />);
-  return { onAdd, onOpen };
+  const onAlarm = jest.fn();
+  await render(<HomeScreen onAdd={onAdd} onOpen={onOpen} onAlarm={onAlarm} />);
+  return { onAdd, onOpen, onAlarm };
 };
 
 describe('HomeScreen', () => {
@@ -95,6 +101,38 @@ describe('HomeScreen', () => {
     expect(onOpen).toHaveBeenCalledWith('a1');
     await fireEvent.press(screen.getByRole('button', { name: 'Add appointment' }));
     expect(onAdd).toHaveBeenCalled();
+  });
+
+  it('opens the alarm screen for a card whose series is under way', async () => {
+    // Leave by 23:20; step 1 (22:50) has fired.
+    const { onOpen, onAlarm } = await renderAt(LATE_EVENING, [
+      appt('soon', 'Dentist', '2026-09-25T23:50:00-07:00'),
+    ]);
+    await fireEvent.press(screen.getByRole('button', { name: /^Dentist,/ }));
+    expect(onAlarm).toHaveBeenCalledWith('soon');
+    expect(onOpen).not.toHaveBeenCalled();
+  });
+
+  it('keeps a left appointment listed with a "Left ✓" badge, opening the editor', async () => {
+    const { onOpen, onAlarm } = await renderAt(LATE_EVENING, [
+      appt('soon', 'Dentist', '2026-09-25T23:50:00-07:00', 'left'),
+    ]);
+    const card = screen.getByRole('button', { name: /^Dentist, Left ✓/ });
+    expect(within(card).getByText('Left ✓')).toBeTruthy();
+    expect(within(card).queryByText(/leave in/)).toBeNull();
+    await fireEvent.press(card);
+    expect(onOpen).toHaveBeenCalledWith('soon');
+    expect(onAlarm).not.toHaveBeenCalled();
+    expect(screen.getByText(/Nothing on the clock/)).toBeTruthy();
+  });
+
+  it('shows a stuck appointment with a "Stuck" badge and a supportive Nag line', async () => {
+    await renderAt(LATE_EVENING, [appt('soon', 'Dentist', '2026-09-25T23:50:00-07:00', 'stuck')]);
+    const card = screen.getByRole('button', {
+      name: /^Dentist, Stuck, Leave by 11:20, leave in 5 min/,
+    });
+    expect(within(card).getByText('Stuck')).toBeTruthy();
+    expect(screen.getByText(/Supportive tone/i)).toBeTruthy();
   });
 
   it('shows a non-blocking message when stored appointments could not be loaded', async () => {

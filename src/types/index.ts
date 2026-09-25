@@ -61,7 +61,15 @@ export interface SeriesStep {
 }
 
 /**
+ * A series step after "I'm genuinely stuck" (F007): same step, time and offset, supportive tone.
+ * `toSupportive` in `src/domain/lines/select.ts` makes these.
+ */
+export type SupportiveStep = Omit<SeriesStep, 'tone'> & { tone: 'supportive' };
+
+/**
  * A series step with its line from the bank (F004): `withLines` in `src/domain/lines/select.ts`.
  * `text` always contains the practical cue ("leave in 4 min"). Derived, never persisted.
  */
-export type SeriesMessage = SeriesStep & { text: string };
+export type SeriesMessage<S extends SeriesStep | SupportiveStep = SeriesStep> = S & {
+  text: string;
+};

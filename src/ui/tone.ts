@@ -1,7 +1,7 @@
 import type { CardTone } from '@/domain/today';
 import type { Intensity } from '@/types';
 
-/** Tone keys the UI colours by: ladder tones plus the `done` status. */
+/** Tone keys the UI colours by: every tone (ladder + supportive) plus the `done` status. */
 export type UiTone = CardTone;
 
 interface ToneClasses {
@@ -62,6 +62,14 @@ export const TONE: Record<UiTone, ToneClasses> = {
     border: 'border-tone-savage',
     stroke: 'stroke-tone-savage',
     label: 'Unhinged',
+  },
+  supportive: {
+    bg: 'bg-tone-supportive',
+    tint: 'bg-tone-supportive/10',
+    text: 'text-tone-supportive',
+    border: 'border-tone-supportive',
+    stroke: 'stroke-tone-supportive',
+    label: 'Supportive',
   },
   done: {
     bg: 'bg-tone-done',

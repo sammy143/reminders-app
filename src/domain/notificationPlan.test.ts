@@ -9,7 +9,6 @@ import {
   diffSchedule,
   parseSeriesKey,
   planNotifications as planWithSkipped,
-  timingChanged,
   type PlannedNotification,
   type ScheduledNotification,
 } from './notificationPlan';
@@ -39,7 +38,7 @@ const planNotifications = (...args: Parameters<typeof planWithSkipped>) =>
   planWithSkipped(...args).notifications;
 const keys = (list: readonly { key: string }[]) => list.map((n) => n.key);
 const asScheduled = (list: readonly PlannedNotification[]): ScheduledNotification[] =>
-  list.map((p) => ({ id: p.key, at: p.at, body: p.body }));
+  list.map((p) => ({ id: p.key, at: p.at, body: p.body, category: p.category }));
 const noImminent = { now: NOW, keepImminentFor: new Set<string>() };
 
 describe('planNotifications', () => {
@@ -55,6 +54,7 @@ describe('planNotifications', () => {
         at: s.at,
         title: 'Nag',
         body: s.text,
+        category: 'nagSeries',
       })),
     );
     expect(keys(plan)).toEqual([
@@ -192,8 +192,8 @@ describe('diffSchedule', () => {
 
   it('cancels a deleted appointment and never touches other namespaces', () => {
     const old = asScheduled(plan);
-    const snooze = { id: 'snooze:a:1', at: new Date(NaN), body: 'Snoozed.' };
-    const roast = { id: 'roast-42', at: NOW, body: 'Nice try.' };
+    const snooze = { id: 'snooze:a:1', at: new Date(NaN), body: 'Snoozed.', category: null };
+    const roast = { id: 'roast-42', at: NOW, body: 'Nice try.', category: null };
     const withoutA = plan.filter((p) => p.appointmentId !== 'a');
     const { toCancel, toSchedule } = diffSchedule(withoutA, [...old, snooze, roast], noImminent);
     expect(toSchedule).toEqual([]);
@@ -213,6 +213,7 @@ describe('diffSchedule', () => {
       id: 'series:a:3',
       at: new Date(NOW.getTime() + 2_000),
       body: 'Leave now.',
+      category: 'nagSeries',
     };
     const keep = { now: NOW, keepImminentFor: new Set(['a']) };
     expect(diffSchedule([], [imminent], keep).toCancel).toEqual([]);
@@ -228,25 +229,6 @@ describe('series keys', () => {
     expect(parseSeriesKey('snooze:3f2a-9:4')).toBeNull();
     expect(parseSeriesKey('series:3f2a-9:7')).toBeNull();
     expect(parseSeriesKey('3f2a-9:4')).toBeNull();
-  });
-});
-
-describe('timingChanged', () => {
-  const base = appt('a', 120);
-  it.each([
-    { name: 'start', edit: { startsAt: appt('a', 150).startsAt }, changed: true },
-    { name: 'travel', edit: { travelMinutes: 25 }, changed: true },
-    { name: 'buffer', edit: { bufferMinutes: 0 }, changed: true },
-    { name: 'in person', edit: { inPerson: false }, changed: true },
-    { name: 'title', edit: { title: 'Renamed' }, changed: false },
-    { name: 'intensity', edit: { intensity: 'savage' as const }, changed: false },
-    {
-      name: 'same instant, other offset',
-      edit: { startsAt: new Date(base.startsAt).toISOString().replace('Z', '+00:00') },
-      changed: false,
-    },
-  ])('$name edit → $changed', ({ edit, changed }) => {
-    expect(timingChanged(base, { ...base, ...edit })).toBe(changed);
   });
 });
 

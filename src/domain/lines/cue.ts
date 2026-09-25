@@ -24,6 +24,7 @@ export function formatStartCue(minutesToStart: number): string {
   return minutes > 0 ? `starts in ${minutes} min` : 'starting now';
 }
 
-function roundMinutes(minutes: number): number {
+/** Nearest whole minute, ties away from zero (±24.5 → ±25), as every cue rounds. */
+export function roundMinutes(minutes: number): number {
   return Math.sign(minutes) * Math.round(Math.abs(minutes));
 }

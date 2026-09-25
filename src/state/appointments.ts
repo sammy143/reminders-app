@@ -4,11 +4,14 @@ import { create } from 'zustand';
 
 import {
   applyEdit,
+  isReschedule,
+  markLeft,
+  markStuck,
   newAppointment,
+  timingChanged,
   type AppointmentDraft,
   type AppointmentFields,
 } from '@/domain/appointment';
-import { timingChanged } from '@/domain/notificationPlan';
 import { prunePast } from '@/domain/today';
 import { loadAppointments, saveAppointments } from '@/services/appointmentStore';
 import { notifications as platformNotifications } from '@/services/notifications';
@@ -16,7 +19,13 @@ import type { NotificationPermission, NotificationsPort } from '@/services/notif
 import type { Appointment } from '@/types';
 
 import { systemClock, type Clock } from './clock';
-import { createSyncQueue, ensurePermission, nextPermission, syncNotifications } from './scheduler';
+import {
+  createSyncQueue,
+  dismissDelivered,
+  ensurePermission,
+  nextPermission,
+  syncNotifications,
+} from './scheduler';
 
 interface AppointmentsState {
   appointments: Appointment[];
@@ -46,6 +55,13 @@ interface AppointmentsState {
   add: (draft: AppointmentDraft) => Promise<string>;
   update: (id: string, draft: AppointmentDraft) => Promise<void>;
   remove: (id: string) => Promise<void>;
+  /**
+   * "I've left": the appointment is marked `left` (no-op unless planned), its series cancelled and
+   * its delivered nags cleared from the tray.
+   */
+  leave: (id: string) => Promise<void>;
+  /** "I'm genuinely stuck": the remaining series turns supportive (no-op unless scheduled/snoozed). */
+  stuck: (id: string) => Promise<void>;
   byId: (id: string) => Appointment | undefined;
 }
 
@@ -67,6 +83,20 @@ export function toFields(draft: AppointmentDraft): AppointmentFields {
 export const LOAD_ERROR = 'Couldn’t load saved appointments.';
 
 let hydrating: Promise<void> | null = null;
+
+type Change = { next: Appointment[]; savedId?: string } | null;
+
+/** Applies a status transition to one appointment; null (no change) when it isn't there or stays. */
+function transition(
+  list: Appointment[],
+  id: string,
+  mark: (appt: Appointment) => Appointment,
+): Change {
+  const before = list.find((a) => a.id === id);
+  const after = before && mark(before);
+  if (!before || !after || after === before) return null;
+  return { next: list.map((a) => (a === before ? after : a)) };
+}
 
 /** One sync run: after a successful load only, so a failed load never cancels everything. */
 const runSync = async (justSaved: ReadonlySet<string>) => {
@@ -95,14 +125,14 @@ export const useAppointments = create<AppointmentsState>()((set, get) => {
   /**
    * Applies a change after a successful load, saves it, then updates state; if saving fails the
    * state is left as it was and the error propagates. Refuses to save while stored data couldn't
-   * be read, so a failed load can never overwrite it.
+   * be read, so a failed load can never overwrite it. A `null` change saves nothing.
    */
-  const mutate = async (
-    change: (list: Appointment[]) => { next: Appointment[]; savedId?: string },
-  ) => {
+  const mutate = async (change: (list: Appointment[]) => Change) => {
     await get().hydrate();
     if (get().loadError) throw new Error(LOAD_ERROR);
-    const { next, savedId } = change(get().appointments);
+    const result = change(get().appointments);
+    if (!result) return;
+    const { next, savedId } = result;
     await saveAppointments(next);
     set({ appointments: next });
     void get().syncNotifications(savedId);
@@ -145,14 +175,24 @@ export const useAppointments = create<AppointmentsState>()((set, get) => {
     update: (id, draft) =>
       mutate((list) => {
         const before = list.find((a) => a.id === id);
-        const edited = before && applyEdit(before, toFields(draft));
+        const now = get().clock();
+        const edited = before && applyEdit(before, toFields(draft), now);
         return {
           next: list.map((a) => (a === before && edited ? edited : a)),
-          // Only a timing edit may re-fire the due step (docs/exec-plans F006 "Decisions").
-          savedId: before && edited && timingChanged(before, edited) ? id : undefined,
+          // Only a timing edit may re-fire the due step (docs/exec-plans F006 "Decisions"); a
+          // reschedule after left/stuck starts fresh, dropping past steps (F007 "Decisions").
+          savedId:
+            before && edited && timingChanged(before, edited) && !isReschedule(before, edited, now)
+              ? id
+              : undefined,
         };
       }),
     remove: (id) => mutate((list) => ({ next: list.filter((a) => a.id !== id) })),
+    leave: async (id) => {
+      await mutate((list) => transition(list, id, markLeft));
+      void dismissDelivered(get().notifications, id);
+    },
+    stuck: (id) => mutate((list) => transition(list, id, markStuck)),
     byId: (id) => get().appointments.find((a) => a.id === id),
   };
 });

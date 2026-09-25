@@ -1,8 +1,13 @@
-import type { Appointment, SeriesMessage, StepNumber } from '@/types';
+import type { Appointment, SeriesStep, StepNumber } from '@/types';
 
-import { withLines } from './lines/select';
+import { hasAlarm, isPlanned } from './appointment';
+import { toSupportive, withLines } from './lines/select';
+import {
+  SERIES_CATEGORY,
+  SUPPORTIVE_CATEGORY,
+  type NotificationCategoryId,
+} from './notificationCategories';
 import { buildSeries } from './series';
-import { isActive } from './today';
 
 /** Full series for this many upcoming in-person appointments (iOS keeps only 64 pending). */
 export const IN_PERSON_SERIES_LIMIT = 2;
@@ -39,6 +44,11 @@ export interface PlannedNotification {
   at: Date;
   title: string;
   body: string;
+  /**
+   * Action buttons (notificationCategories.ts): the ladder of an in-person appointment has
+   * "I've left" and "I'm genuinely stuck", a stuck one only "I've left"; other reminders none.
+   */
+  category: NotificationCategoryId | null;
 }
 
 /** A notification the OS already holds, as the notifications service reads it back. */
@@ -48,6 +58,8 @@ export interface ScheduledNotification {
   /** When it fires; an invalid Date when the OS didn't tell us (then it is rescheduled). */
   at: Date;
   body: string;
+  /** Category we scheduled it with (read from our own payload); null when none or unknown. */
+  category: string | null;
 }
 
 /** An appointment `planNotifications` couldn't plan (bad data); the rest are still planned. */
@@ -80,25 +92,9 @@ export function parseSeriesKey(key: string): { appointmentId: string; step: Step
 const MS_PER_SECOND = 1_000;
 
 /**
- * True when an edit moves the series (start, travel, buffer, in person), so the saved
- * appointment's due step may fire again. A title- or intensity-only edit never re-fires it.
- */
-export function timingChanged(
-  before: Pick<Appointment, 'startsAt' | 'travelMinutes' | 'bufferMinutes' | 'inPerson'>,
-  after: Pick<Appointment, 'startsAt' | 'travelMinutes' | 'bufferMinutes' | 'inPerson'>,
-): boolean {
-  return (
-    Date.parse(before.startsAt) !== Date.parse(after.startsAt) ||
-    before.travelMinutes !== after.travelMinutes ||
-    before.bufferMinutes !== after.bufferMinutes ||
-    before.inPerson !== after.inPerson
-  );
-}
-
-/**
  * What should be scheduled right now (docs/exec-plans F006 "Approach").
  *
- * - Active appointments only, soonest start first.
+ * - Planned appointments only (`isPlanned`: not left or done), soonest start first.
  * - The next `IN_PERSON_SERIES_LIMIT` in-person appointments with steps left get their remaining
  *   series; the next `OTHER_REMINDER_LIMIT` others get their one polite reminder.
  * - A step is *due* when `at <= now` (buildSeries pulls the latest passed step to `now`). Due
@@ -106,6 +102,8 @@ export function timingChanged(
  *   already fired (or been planned), and planning it again would repeat it. Planned times are
  *   clamped to at least `now + FIRE_NOW_LEAD_MS` and rounded up to a whole second (iOS drops
  *   milliseconds).
+ * - A `stuck` appointment keeps its remaining steps (same keys and times) with supportive lines
+ *   and the supportive category; its due step is never planned again, even when just saved.
  * - An appointment whose series can't be built (bad data) is skipped and reported; the others
  *   are still planned.
  * - At most `MAX_PLANNED` in total; the soonest win. (With today's limits, 2 × 6 + 20 = 32 never
@@ -120,26 +118,30 @@ export function planNotifications(
   const earliest = now.getTime() + FIRE_NOW_LEAD_MS;
   const ceilSecond = (ms: number) => Math.ceil(ms / MS_PER_SECOND) * MS_PER_SECOND;
   const sorted = appointments
-    .filter(isActive)
+    .filter(isPlanned)
     .sort((a, b) => Date.parse(a.startsAt) - Date.parse(b.startsAt) || a.id.localeCompare(b.id));
 
   const quota = { inPerson: limits.inPerson, other: limits.other };
   const planned: PlannedNotification[] = [];
   const skipped: SkippedAppointment[] = [];
   for (const appt of sorted) {
-    const kind = appt.inPerson ? 'inPerson' : 'other';
+    const kind = hasAlarm(appt) ? 'inPerson' : 'other';
     if (quota[kind] === 0) continue;
-    let series: SeriesMessage[];
+    const stuck = appt.status === 'stuck';
+    let series: SeriesStep[];
     try {
-      series = withLines(buildSeries(appt, now), appt);
+      series = buildSeries(appt, now);
     } catch (error) {
       skipped.push({ appointmentId: appt.id, error });
       continue;
     }
-    const steps = series.filter((s) => s.at.getTime() > now.getTime() || justSaved.has(appt.id));
-    if (steps.length === 0) continue;
+    const due = (s: SeriesStep) => s.at.getTime() <= now.getTime();
+    const remaining = series.filter((s) => !due(s) || (justSaved.has(appt.id) && !stuck));
+    if (remaining.length === 0) continue;
     quota[kind] -= 1;
-    for (const s of steps) {
+    const messages = stuck ? withLines(toSupportive(remaining), appt) : withLines(remaining, appt);
+    const category = !hasAlarm(appt) ? null : stuck ? SUPPORTIVE_CATEGORY : SERIES_CATEGORY;
+    for (const s of messages) {
       planned.push({
         key: notificationKey(appt.id, s.step),
         appointmentId: appt.id,
@@ -147,6 +149,7 @@ export function planNotifications(
         at: new Date(ceilSecond(Math.max(s.at.getTime(), earliest))),
         title: NOTIFICATION_TITLE,
         body: s.text,
+        category,
       });
     }
   }
@@ -168,7 +171,7 @@ export interface DiffOptions {
 
 /**
  * Turns the OS's list into the plan, touching only the series namespace (anything else is left
- * alone). A series notification is kept only when its key, time and body all match a planned
+ * alone). A series notification is kept only when its key, time, body and category match a planned
  * one (or it is imminent, see `DiffOptions`); other series entries are cancelled, and planned
  * ones without a match are scheduled.
  */
@@ -186,7 +189,11 @@ export function diffSchedule(
     if (!series) continue;
     const p = byKey.get(s.id);
     const matches =
-      p !== undefined && !kept.has(s.id) && p.at.getTime() === s.at.getTime() && p.body === s.body;
+      p !== undefined &&
+      !kept.has(s.id) &&
+      p.at.getTime() === s.at.getTime() &&
+      p.body === s.body &&
+      p.category === s.category;
     if (matches) {
       kept.add(s.id);
     } else if (!p && keepImminentFor.has(series.appointmentId) && s.at.getTime() <= imminent) {
