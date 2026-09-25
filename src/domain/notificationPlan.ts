@@ -37,6 +37,16 @@ const LIMITS: PlanLimits = {
   total: MAX_PLANNED,
 };
 
+export interface PlanOptions {
+  /** Defaults to the constants above; tests pass smaller ones. */
+  limits?: PlanLimits;
+  /**
+   * "Mute today" (F008): nothing that would fire before this is planned. Pass it only while the
+   * mute is active (`activeMute` in settings.ts); null or a past time plans as usual.
+   */
+  mutedUntil?: Date | null;
+}
+
 export interface PlannedNotification {
   /** `series:<appointmentId>:<step>`; the OS identifier, stable across syncs. */
   key: string;
@@ -109,6 +119,9 @@ const MS_PER_SECOND = 1_000;
  *   and a due step is never planned again, even when just saved.
  * - An appointment whose series can't be built (bad data) is skipped and reported; the others
  *   are still planned.
+ * - While muted (`mutedUntil`, F008) a notification whose (clamped) time is before `mutedUntil` is
+ *   dropped, so a sync cancels it; later ones (tomorrow's) are kept. An appointment left with
+ *   nothing takes no series slot.
  * - At most `MAX_PLANNED` in total; the soonest win. (With today's limits, 2 × 6 + 20 = 32 never
  *   reaches it; it guards future limits. `limits` exists so tests can exercise it.)
  */
@@ -116,10 +129,12 @@ export function planNotifications(
   appointments: readonly Appointment[],
   now: Date,
   justSaved: ReadonlySet<string> = new Set(),
-  limits: PlanLimits = LIMITS,
+  { limits = LIMITS, mutedUntil = null }: PlanOptions = {},
 ): NotificationPlan {
   const earliest = now.getTime() + FIRE_NOW_LEAD_MS;
   const ceilSecond = (ms: number) => Math.ceil(ms / MS_PER_SECOND) * MS_PER_SECOND;
+  const fireAt = (at: Date) => new Date(ceilSecond(Math.max(at.getTime(), earliest)));
+  const audible = (at: Date) => !mutedUntil || at.getTime() >= mutedUntil.getTime();
   const sorted = appointments
     .filter(isPlanned)
     .sort((a, b) => Date.parse(a.startsAt) - Date.parse(b.startsAt) || a.id.localeCompare(b.id));
@@ -144,6 +159,7 @@ export function planNotifications(
       skipped.push({ appointmentId: appt.id, error });
       continue;
     }
+    messages = messages.filter((s) => audible(fireAt(s.at)));
     if (messages.length === 0) continue;
     quota[kind] -= 1;
     const category = !hasAlarm(appt) ? null : stuck ? SUPPORTIVE_CATEGORY : SERIES_CATEGORY;
@@ -152,7 +168,7 @@ export function planNotifications(
         key: notificationKey(appt.id, s.step),
         appointmentId: appt.id,
         step: s.step,
-        at: new Date(ceilSecond(Math.max(s.at.getTime(), earliest))),
+        at: fireAt(s.at),
         title: NOTIFICATION_TITLE,
         body: s.text,
         category,

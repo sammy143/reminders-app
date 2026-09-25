@@ -12,6 +12,7 @@ import {
   type AppointmentDraft,
   type AppointmentFields,
 } from '@/domain/appointment';
+import { activeMute } from '@/domain/settings';
 import { prunePast } from '@/domain/today';
 import { loadAppointments, saveAppointments } from '@/services/appointmentStore';
 import { notifications as platformNotifications } from '@/services/notifications';
@@ -26,6 +27,7 @@ import {
   nextPermission,
   syncNotifications,
 } from './scheduler';
+import { useSettings } from './settings';
 
 interface AppointmentsState {
   appointments: Appointment[];
@@ -98,11 +100,16 @@ function transition(
   return { next: list.map((a) => (a === before ? after : a)) };
 }
 
-/** One sync run: after a successful load only, so a failed load never cancels everything. */
+/**
+ * One sync run: after a successful load of appointments and settings only, so a failed load never
+ * cancels everything, and a stored "mute today" holds from the first sync after a restart.
+ */
 const runSync = async (justSaved: ReadonlySet<string>) => {
   const { hydrate, notifications: port } = useAppointments.getState();
-  await hydrate();
-  if (useAppointments.getState().loadError) return;
+  await Promise.all([hydrate(), useSettings.getState().hydrate()]);
+  // Unknown mute (settings unreadable) is not "not muted": leave the OS as it is until a later
+  // sync (foreground, or any change) finds the settings readable.
+  if (useAppointments.getState().loadError || useSettings.getState().loadError) return;
   const permission = await ensurePermission(port, justSaved.size > 0);
   useAppointments.setState((state) => ({
     notificationPermission: nextPermission(state.notificationPermission, permission),
@@ -110,7 +117,9 @@ const runSync = async (justSaved: ReadonlySet<string>) => {
   if (permission !== 'granted') return;
   // Read state and "now" after the permission prompt, which can take a while.
   const { appointments, clock } = useAppointments.getState();
-  const result = await syncNotifications(port, appointments, clock(), justSaved);
+  const now = clock();
+  const mutedUntil = activeMute(useSettings.getState().settings, now);
+  const result = await syncNotifications(port, appointments, now, justSaved, mutedUntil);
   for (const { appointmentId, error } of result.skipped) {
     console.warn(`Skipped notifications for appointment ${appointmentId}`, error);
   }
@@ -195,6 +204,15 @@ export const useAppointments = create<AppointmentsState>()((set, get) => {
     stuck: (id) => mutate((list) => transition(list, id, (a) => markStuck(a, get().clock()))),
     byId: (id) => get().appointments.find((a) => a.id === id),
   };
+});
+
+// Muting or unmuting (F008) re-syncs: today's series is cancelled, or the rest of it re-planned.
+// Loading settings isn't a change: the sync waits for it anyway (runSync).
+useSettings.subscribe((state, previous) => {
+  const changed = state.settings.mutedUntil !== previous.settings.mutedUntil;
+  if (changed && state.hydrated && previous.hydrated) {
+    void useAppointments.getState().syncNotifications();
+  }
 });
 
 /** Resolves once every requested notification sync has finished. */

@@ -33,3 +33,6 @@ Update this folder before changing UI code; the reviewer checks UI against it.
 - Toggle on-color: ink-black for normal toggles, indigo only for supportive mode (as shown).
 - Active alarm: text colour per tone for contrast, a white primary button, a small Back control and no
   added quote marks around Nag's line — see DESIGN.md "Alarm screen" (F007).
+- Settings (F008): no version badge, supportive-mode, calendar, home-location or emergency rows; one
+  Nag avatar; accurate buffer hint and a "new appointments only" caption; the existing stepper — see
+  [F008 exec plan](../exec-plans/completed/F008.md) "Design deviations".

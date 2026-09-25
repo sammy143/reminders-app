@@ -35,11 +35,17 @@ export type AppointmentFields = Pick<
 
 export type DraftErrors = Partial<Record<keyof AppointmentDraft, string>>;
 
-/** A blank draft starting one hour from `now`, rounded up to the next 5 minutes. */
-export function draftDefaults(now: Date): AppointmentDraft {
+/**
+ * A blank draft starting one hour from `now`, rounded up to the next 5 minutes. Intensity and
+ * buffer come from the user's settings (`appointmentDefaults` in settings.ts, F008) when given.
+ */
+export function draftDefaults(
+  now: Date,
+  defaults: Partial<Pick<AppointmentDraft, 'intensity' | 'bufferMinutes'>> = {},
+): AppointmentDraft {
   const step = 5 * MS_PER_MINUTE;
   const start = Math.ceil((now.getTime() + 60 * MS_PER_MINUTE) / step) * step;
-  return { title: '', startsAt: new Date(start), ...DRAFT_DEFAULTS };
+  return { title: '', startsAt: new Date(start), ...DRAFT_DEFAULTS, ...defaults };
 }
 
 export function draftFromAppointment(appt: Appointment): AppointmentDraft {

@@ -1,4 +1,4 @@
-// NativeWind `className` on the react-native-svg shapes registered with cssInterop in Nag.tsx.
+// NativeWind `className` on the react-native-svg shapes registered with cssInterop in components/svgInterop.ts.
 // cssInterop targets `style`, which react-native-svg accepts at runtime but doesn't declare.
 import type { StyleProp, ViewStyle } from 'react-native';
 import 'react-native-svg';

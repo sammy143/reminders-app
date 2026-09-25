@@ -101,21 +101,27 @@ export function cardStatus(appt: Appointment, now: Date): CardStatus {
 /**
  * The next line Nag will say: across planned appointments, the series step that fires soonest
  * (a step already due fires at `now`); once stuck, the next supportive nag still to come (none after
- * the 2 supportive ones). Ties go to the earlier start.
+ * the 2 supportive ones). Ties go to the earlier start. While muted (`mutedUntil`, F008), steps
+ * that fire before it are skipped, as they are never delivered.
  */
-export function nextNagLine(list: readonly Appointment[], now: Date): NagLine | null {
+export function nextNagLine(
+  list: readonly Appointment[],
+  now: Date,
+  mutedUntil: Date | null = null,
+): NagLine | null {
   let best: NagLine | null = null;
   let bestStart = Infinity;
+  const audible = (s: { at: Date }) => !mutedUntil || s.at.getTime() >= mutedUntil.getTime();
   for (const appt of list.filter(isPlanned)) {
     const [first] =
       appt.status === 'stuck'
         ? withLines(
             supportiveSeries(appt)
-              .filter((s) => s.at.getTime() > now.getTime())
+              .filter((s) => s.at.getTime() > now.getTime() && audible(s))
               .slice(0, 1),
             appt,
           )
-        : withLines(buildSeries(appt, now).slice(0, 1), appt);
+        : withLines(buildSeries(appt, now).filter(audible).slice(0, 1), appt);
     if (!first) continue;
     const start = Date.parse(appt.startsAt);
     const at = first.at.getTime();

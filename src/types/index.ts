@@ -78,3 +78,16 @@ export type SupportiveStep = Omit<SeriesStep, 'tone'> & { tone: 'supportive' };
 export type SeriesMessage<S extends SeriesStep | SupportiveStep = SeriesStep> = S & {
   text: string;
 };
+
+/** User settings (F008): defaults for new appointments and "mute today". */
+export interface Settings {
+  /** Intensity a new appointment starts with; existing ones keep theirs. */
+  defaultIntensity: Intensity;
+  /** Buffer a new appointment starts with, within the appointment limits. */
+  defaultBufferMinutes: number;
+  /**
+   * ISO 8601 date-time with offset: nags that would fire before it are not scheduled ("mute
+   * today" = the next local midnight). Null when not muted; a past value counts as not muted.
+   */
+  mutedUntil: string | null;
+}

@@ -5,6 +5,8 @@
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join, relative, dirname, resolve, extname } from 'node:path';
 
+import { routeExists } from './routes.mjs';
+
 const ROOT = resolve(dirname(new URL(import.meta.url).pathname), '..');
 const SRC = join(ROOT, 'src');
 const MAX_LINES = 300;
@@ -137,13 +139,9 @@ function checkNotificationsImport(file, rel, spec) {
 // generated .expo/types (stale copies broke it), so this is what catches a mistyped or deleted route.
 const ROUTE_RE = /(?:\bpathname\s*:\s*|\bhref\s*=\s*\{?\s*|\brouter\.(?:push|replace|navigate|dismissTo)\(\s*)(['"])(\/[^'"?#]*)\1/g;
 const APP_DIR = join(SRC, 'app');
-function routeExists(route) {
-  const base = join(APP_DIR, route === '/' ? 'index' : route.slice(1));
-  return ['.tsx', '.ts', '/index.tsx', '/index.ts'].some((ext) => existsSync(base + ext));
-}
 function checkRoutes(file, text) {
   for (const m of text.matchAll(ROUTE_RE)) {
-    if (!routeExists(m[2])) {
+    if (!routeExists(APP_DIR, m[2])) {
       fail(file, `navigates to '${m[2]}', but no route file matches it under src/app/. Fix the path or add the route (docs/ARCHITECTURE.md).`);
     }
   }

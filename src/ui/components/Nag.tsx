@@ -1,18 +1,8 @@
-import { cssInterop } from 'nativewind';
 import { View } from 'react-native';
 import Svg, { Ellipse, Path, Rect } from 'react-native-svg';
 
 import { TONE, type UiTone } from '../tone';
-
-// Colours stay tokens: shapes take NativeWind fill-*/stroke-* classes. cssInterop turns them
-// into style; native then maps fill/stroke to SVG props, and web (react-native-web) emits the
-// CSS classes. Typings for className/style: src/ui/svg-classname.d.ts.
-const svgClassName = {
-  className: { target: 'style', nativeStyleToProp: { fill: true, stroke: true } },
-} as const;
-cssInterop(Path, svgClassName);
-cssInterop(Ellipse, svgClassName);
-cssInterop(Rect, svgClassName);
+import './svgInterop';
 
 interface NagProps {
   tone: UiTone;

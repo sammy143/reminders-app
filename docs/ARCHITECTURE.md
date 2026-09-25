@@ -42,7 +42,12 @@ Styling: NativeWind classes in `ui/` and `app/`, tokens from `docs/design/DESIGN
   no longer exists. `TRACE_NOTIFICATIONS=1 node scripts/check-architecture.mjs` prints the graphs.
   The adapter loads them lazily in a try/catch; on failure notifications are `unavailable`.
 - Route literals in `src/app/` (`router.push('/…')`, `pathname: '/…'`, `href="/…"`,
-  `dismissTo`) must match a route file under `src/app/`. This replaces typed-route checking in
+  `dismissTo`) must match a route file under `src/app/`. Route groups (`(tabs)/`) add no URL
+  segment, so the checker looks inside them at every level (`'/'` → `(tabs)/index.tsx`); a
+  group may also be named explicitly (`'/(tabs)/settings'`). `_layout` and `+…` files (`+not-found`,
+  `+html`) are never routes. The resolver lives in `scripts/routes.mjs`, tested by
+  `scripts/routes.test.mjs` (`node --test`, fixture tree in `scripts/__fixtures__/app/`), which
+  `scripts/check.sh` runs. This replaces typed-route checking in
   the gate: `npm run typecheck` uses `tsconfig.typecheck.json`, which leaves out Expo's generated
   `.expo/types` and `expo-env.d.ts`. Those files are gitignored and go stale between dev-server runs, so
   including them made the gate depend on local state. Editors still use `tsconfig.json`, typed routes included.
