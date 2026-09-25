@@ -168,3 +168,20 @@ Newest entry at the bottom. Each session appends one entry:
   to completed/.
 - Next: F008 (Settings).
 - Blockers/notes: the Android device check (F005–F007) is outstanding; the DateTimePicker `onChange` deprecation is in tech-debt.
+
+## 2026-09-25 — F008 — PASS-PENDING-HUMAN
+- Did: a Settings tab (Today | Settings tab bar via an expo-router (tabs) group) with default intensity, default buffer
+  and "Mute Nag for today". Settings are persisted (settings.v1, Zod field-by-field fallback) and prefill new appointments only.
+  Mute drops every nag before the next local midnight (DST-safe) and shows a Home banner with Unmute and a calm bubble line.
+  A failed settings load refuses saves and skips syncs. routeExists handles route groups and ignores _/+ files, and is tested by
+  node --test scripts/*.test.mjs, now a check.sh step.
+- Verified: verifier PASS-PENDING-HUMAN twice (17 mutants caught on the final tree); the reviewer found no blockers,
+  fixed in 1 round. check.sh 444 tests + checker tests.
+- Next: the user's Expo Go check (PR checklist), then F009.
+
+## 2026-09-25 — F008 — PASS (device-verified on iOS)
+- Result: the user ran the PR #8 checklist on iPhone (Expo Go); steps 1–9 passed (tab bar, persisted defaults,
+  prefilled form, mute silencing real nags across a restart, unmute restoring only future steps).
+- Verified: passes: true, note "device-verified on iOS; Android untested". Plan moved to completed/. The Android
+  check was added to the F007 Android tech-debt item (now F007 + F008).
+- Next: F009.

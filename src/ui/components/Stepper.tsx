@@ -2,6 +2,8 @@ import { Pressable, Text, View } from 'react-native';
 
 interface StepperProps {
   label: string;
+  /** Muted second line under the label. */
+  hint?: string;
   value: number;
   min: number;
   max: number;
@@ -10,11 +12,14 @@ interface StepperProps {
 }
 
 /** Row with − value + buttons, in minutes. Clamps to [min, max]. */
-export function Stepper({ label, value, min, max, step, onChange }: StepperProps) {
+export function Stepper({ label, hint, value, min, max, step, onChange }: StepperProps) {
   const set = (next: number) => onChange(Math.min(max, Math.max(min, next)));
   return (
     <View className="flex-row items-center justify-between px-4 py-3">
-      <Text className="text-body text-ink">{label}</Text>
+      <View className="flex-1 pr-3">
+        <Text className="text-body text-ink">{label}</Text>
+        {hint ? <Text className="text-label text-ink-muted">{hint}</Text> : null}
+      </View>
       <View className="flex-row items-center gap-3">
         <StepButton
           symbol="−"

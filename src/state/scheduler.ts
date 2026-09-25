@@ -50,20 +50,25 @@ export function nextPermission(
  * One reconciliation: reads what the OS holds, plans, diffs, then cancels and schedules.
  * The OS list is the source of truth (docs/exec-plans F006 "Decisions"), so running it again
  * with the same inputs changes nothing. `justSaved` = appointments saved since the last sync,
- * whose due step may fire now.
+ * whose due step may fire now. `mutedUntil` (an active "mute today", F008) cancels and holds
+ * back everything before it, imminent nags included.
  */
 export async function syncNotifications(
   port: NotificationsPort,
   appointments: readonly Appointment[],
   now: Date,
   justSaved: ReadonlySet<string> = new Set(),
+  mutedUntil: Date | null = null,
 ): Promise<SyncResult> {
   const scheduled = await port.listScheduled();
-  const { notifications: planned, skipped } = planNotifications(appointments, now, justSaved);
+  const { notifications: planned, skipped } = planNotifications(appointments, now, justSaved, {
+    mutedUntil,
+  });
   // A stuck appointment's imminent ladder nag is cancelled too: it would be an insult (F007).
+  // While muted nothing is kept: "mute today" cancels today's series outright.
   const keepImminentFor = new Set(
     appointments
-      .filter((a) => isPlanned(a) && a.status !== 'stuck' && !justSaved.has(a.id))
+      .filter((a) => !mutedUntil && isPlanned(a) && a.status !== 'stuck' && !justSaved.has(a.id))
       .map((a) => a.id),
   );
   const { toCancel, toSchedule } = diffSchedule(planned, scheduled, { now, keepImminentFor });

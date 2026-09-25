@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 
 import { useAppointments } from '@/state/appointments';
+import { useSettings } from '@/state/settings';
 import { useForegroundSync } from '@/state/useForegroundSync';
 import { useNotificationResponses, type OpenTarget } from '@/state/useNotificationResponses';
 
@@ -20,6 +21,7 @@ export default function RootLayout() {
   useNotificationResponses(openFromNotification);
   useEffect(() => {
     void useAppointments.getState().hydrate();
+    void useSettings.getState().hydrate();
   }, []);
 
   return (

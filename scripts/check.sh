@@ -8,6 +8,9 @@ step() { echo "-- $1"; }
 step "architecture"
 node scripts/check-architecture.mjs
 
+step "checker tests"
+node --test scripts/*.test.mjs
+
 if [ ! -f package.json ]; then
   echo "(no package.json yet — skipping lint/typecheck/test; F001 adds them)"
   exit 0

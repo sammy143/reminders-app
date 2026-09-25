@@ -114,8 +114,8 @@
         "Mute today cancels today's series and suppresses scheduling until midnight",
         "bash scripts/check.sh passes"
       ],
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "device-verified on iOS; Android untested"
     },
     {
       "id": "F009",

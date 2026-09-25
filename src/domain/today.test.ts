@@ -205,6 +205,25 @@ describe('nextNagLine', () => {
     expect(line?.text).toMatch(/leave in 5 min/i);
   });
 
+  it('skips lines that fire before mutedUntil (F008)', () => {
+    // Leave by 14:30: step 2 is due now (14:25), steps 3–6 at 14:30, 14:33, 14:36, 14:40.
+    const soon = appt({ id: 'soon' });
+    const line = nextNagLine([soon], now, new Date('2026-09-24T14:34:00Z'));
+    expect(line).toMatchObject({ appointmentId: 'soon', tone: 'savage' });
+    expect(line?.at.toISOString()).toBe('2026-09-24T14:36:00.000Z');
+    expect(nextNagLine([soon], now, new Date('2026-09-24T14:40:00Z'))?.at.toISOString()).toBe(
+      '2026-09-24T14:40:00.000Z',
+    );
+    expect(nextNagLine([soon], now, new Date('2026-09-25T07:00:00Z'))).toBeNull();
+    // Stuck at 14:25: supportive nags at 14:30 and 14:33.
+    const stuck = appt({ status: 'stuck', stuckAt: now.toISOString() });
+    expect(nextNagLine([stuck], now, new Date('2026-09-24T14:31:00Z'))?.at.toISOString()).toBe(
+      '2026-09-24T14:33:00.000Z',
+    );
+    expect(nextNagLine([stuck], now, new Date('2026-09-24T14:34:00Z'))).toBeNull();
+    expect(nextNagLine([soon], now, null)).toEqual(nextNagLine([soon], now));
+  });
+
   it('returns null when nothing is coming up', () => {
     expect(nextNagLine([appt({ startsAt: '2026-09-24T09:00:00Z' })], now)).toBeNull();
     expect(nextNagLine([], now)).toBeNull();

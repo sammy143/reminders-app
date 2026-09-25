@@ -105,9 +105,13 @@ describe('planNotifications', () => {
 
   it('caps the total and keeps the soonest', () => {
     const list = Array.from({ length: 12 }, (_, i) => appt(`p${i}`, 90 + i * 5));
-    const plan = planNotifications(list, NOW, new Set(), { inPerson: 12, other: 0, total: 60 });
+    const plan = planNotifications(list, NOW, new Set(), {
+      limits: { inPerson: 12, other: 0, total: 60 },
+    });
     expect(plan).toHaveLength(60);
-    const all = planNotifications(list, NOW, new Set(), { inPerson: 12, other: 0, total: 1000 });
+    const all = planNotifications(list, NOW, new Set(), {
+      limits: { inPerson: 12, other: 0, total: 1000 },
+    });
     expect(all).toHaveLength(72);
     expect(plan).toEqual(all.slice(0, 60));
     const lastKept = plan[59].at.getTime();

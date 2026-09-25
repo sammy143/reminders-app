@@ -1,9 +1,12 @@
+import { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { alarmUnderway } from '@/domain/alarm';
+import { activeMute } from '@/domain/settings';
 import { cardStatus, groupUpcoming, nextNagLine, type DayGroup } from '@/domain/today';
 import { useAppointments } from '@/state/appointments';
+import { useSettings } from '@/state/settings';
 import { useNow } from '@/state/useNow';
 import type { Appointment } from '@/types';
 
@@ -14,7 +17,9 @@ import { formatDay, formatTime } from './format';
 import { TONE } from './tone';
 
 const IDLE_LINE = 'Nothing on the clock. Enjoy it while it lasts.';
+export const MUTED_LINE = 'Muted until midnight. Enjoy the quiet.';
 export const NOTIFICATIONS_OFF = 'Notifications are off. Nag can’t reach you.';
+export const MUTED = 'Muted until midnight';
 
 interface HomeScreenProps {
   onAdd: () => void;
@@ -24,7 +29,7 @@ interface HomeScreenProps {
   onAlarm: (id: string) => void;
 }
 
-/** Today list (docs/design/screens/home.png; streak, tabs and settings are later features). */
+/** Today list (docs/design/screens/home.png; the streak is a later feature). */
 export function HomeScreen({ onAdd, onOpen, onAlarm }: HomeScreenProps) {
   const now = useNow(
     15_000,
@@ -34,8 +39,14 @@ export function HomeScreen({ onAdd, onOpen, onAlarm }: HomeScreenProps) {
   const hydrated = useAppointments((s) => s.hydrated);
   const loadError = useAppointments((s) => s.loadError);
   const notificationsOff = useAppointments((s) => s.notificationPermission === 'denied');
+  const mutedUntil = activeMute(
+    useSettings((s) => s.settings),
+    now,
+  );
+  const muted = mutedUntil !== null;
   const groups = groupUpcoming(appointments, now);
-  const nag = nextNagLine(appointments, now);
+  // While muted, only lines that will really be delivered (from midnight on).
+  const nag = nextNagLine(appointments, now, mutedUntil);
   const nagTone = nag?.tone ?? 'done';
 
   return (
@@ -56,11 +67,12 @@ export function HomeScreen({ onAdd, onOpen, onAlarm }: HomeScreenProps) {
         <NagBubble
           tone={nagTone}
           tail="right"
-          heading={nag ? `${TONE[nag.tone].label} tone` : 'Idle'}
+          heading={nag ? `${TONE[nag.tone].label} tone` : muted ? 'Muted' : 'Idle'}
           aside={nag && nag.at.getTime() > now.getTime() ? `at ${formatTime(nag.at)}` : undefined}
-          line={nag?.text ?? IDLE_LINE}
+          line={nag?.text ?? (muted ? MUTED_LINE : IDLE_LINE)}
         />
 
+        {muted ? <MutedBanner /> : null}
         {notificationsOff ? (
           <View className="rounded-button border border-line bg-surface px-4 py-3">
             <Text role="status" className="text-label text-ink-muted">
@@ -95,6 +107,33 @@ export function HomeScreen({ onAdd, onOpen, onAlarm }: HomeScreenProps) {
         <Text className="text-title text-surface">+</Text>
       </Pressable>
     </SafeAreaView>
+  );
+}
+
+/** "Mute today" is on (F008): a quiet, non-blocking note with a way out. */
+function MutedBanner() {
+  const [failed, setFailed] = useState(false);
+  const unmute = () => {
+    setFailed(false);
+    useSettings
+      .getState()
+      .unmute()
+      .catch(() => setFailed(true));
+  };
+  return (
+    <View className="flex-row items-center justify-between gap-3 rounded-button border border-line bg-surface py-1 pl-4 pr-1">
+      <Text role="status" className="flex-1 text-label text-ink-muted">
+        {failed ? `${MUTED}. Couldn’t unmute, try again.` : MUTED}
+      </Text>
+      <Pressable
+        role="button"
+        onPress={unmute}
+        hitSlop={4}
+        className="min-h-[44px] justify-center px-3"
+      >
+        <Text className="text-label font-semibold text-ink">Unmute</Text>
+      </Pressable>
+    </View>
   );
 }
 
