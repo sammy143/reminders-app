@@ -159,3 +159,12 @@ Newest entry at the bottom. Each session appends one entry:
   Unconfirmed on Expo Go, which ships its own scoped categories module. check.sh 388 tests.
 - Next: the user re-tests step 2. If buttons still don't show with both categories logged, treat it as an
   Expo Go limitation: document it, add it to F012 verify, and mark F007 as the user specified.
+
+## 2026-09-25 — F007 — PASS (device-verified on iOS)
+- Result: the user re-tested on iPhone (Expo Go) after the category-registration fix. The log showed both categories
+  (nagSeries, nagSupportive); lock-screen and Notification Centre buttons work; the stuck card shows "starts at h:mm";
+  "I've left" stops the nags. Root cause confirmed: concurrent category registration raced in the iOS CategoryManager actor.
+- Verified: passes: true, note "device-verified on iOS incl. notification buttons; Android untested". Plan moved
+  to completed/.
+- Next: F008 (Settings).
+- Blockers/notes: the Android device check (F005–F007) is outstanding; the DateTimePicker `onChange` deprecation is in tech-debt.

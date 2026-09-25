@@ -102,8 +102,8 @@
         "Manual check on a real phone",
         "bash scripts/check.sh passes"
       ],
-      "passes": false,
-      "notes": "pending device check (Expo Go). Automated: left/stuck via store, notification responses (warm + cold start) and in-app alarm screen verified; online events never reach the alarm."
+      "passes": true,
+      "notes": "device-verified on iOS incl. notification buttons; Android untested"
     },
     {
       "id": "F008",

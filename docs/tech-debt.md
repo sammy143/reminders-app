@@ -20,3 +20,5 @@ Known shortcuts to repay. One line each: `- [ ] <what> — <why taken> — <feat
 - [ ] "I'm genuinely stuck" can only be undone by moving the start time (a reschedule resets `left`/`stuck`); no in-app "not stuck any more" — v1 scope; revisit with F008 settings — F007/2026-09-25
 - [ ] Notification buttons open the app (`opensAppToForeground: true`) instead of running a background handler — in Expo Go a background JS handler isn't reliable after the app was killed; a dev build could apply "I've left" without opening the app — F007/2026-09-25
 - [ ] Alarm contrast test only checks class strings in ui/alarmTone.ts; an `opacity-*` class added directly in AlarmScreen.tsx isn't caught. Extend the test to scan AlarmScreen for opacity/alpha text classes — F007/2026-09-25
+- [ ] `@react-native-community/datetimepicker` warns that `onChange` is deprecated; migrate `src/ui/components/DateTimeField.tsx` to `onValueChange`/`onDismiss` (seen on iOS Expo Go) — F005/2026-09-25
+- [ ] Android device check for F007 (notification buttons nagSeries/nagSupportive, cold start, tray clean-up) not done; only iOS Expo Go verified 2026-09-25 — F007/2026-09-25
