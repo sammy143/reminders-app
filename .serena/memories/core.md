@@ -1,6 +1,6 @@
 # reminders-app — core
 
-Status: harness set up, no app code yet (F000 = Stitch design pass, local only; F001 = scaffold). Entry map for agents: `AGENTS.md` (CLAUDE.md imports it + adds multi-agent loop).
+Status: see `harness/feature_list.json` (v1 = F000–F008 done 2026-09-25, device-verified on iOS only). Entry map for agents: `AGENTS.md` (CLAUDE.md imports it + adds multi-agent loop).
 
 Product: Expo (React Native) reminders app; notifications before an appointment's leave-by time escalate polite → insulting until the user has left home. Product rules/milestones/stack: `docs/PLAN.md`.
 
@@ -15,7 +15,7 @@ Invariants easy to get wrong:
 - iOS 64-pending-notification cap: schedule only next ~2 in-person events.
 - Geofencing (v3) needs an EAS dev build, not Expo Go.
 
-Repo: GitHub `sammy143/reminders-app` (private), branch `main`, remote `origin` over **HTTPS** with repo-local gh credential helper — local SSH keys authenticate as a different GitHub account and can't push.
+Repo: GitHub `sammy143/reminders-app`, branch `main`, remote `origin` over **HTTPS** with a repo-local `gh` credential helper — push over HTTPS, not SSH.
 
 Other memories:
 - Stack constraints (Stitch local-only, NativeWind, Expo Go vs dev build): `mem:tech_stack`.
