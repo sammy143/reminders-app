@@ -36,8 +36,8 @@ Each fact lives in exactly one place; everything else links to it.
 | Why a design choice was made | the feature's exec plan | during the work |
 
 Precedence when sources disagree: **code + passing checks > docs/ > memories**. Fix the stale
-doc in the same commit; never "fix" code to match a stale doc without asking. Serena
-memories and personal memory only point to these files — never duplicate their content.
+doc in the same commit; never "fix" code to match a stale doc without asking. Agent
+memories (local, outside the repo) only point to these files — never duplicate their content.
 
 ## Hard rules
 - **One feature per session.** Finish, verify, log, commit — then stop or pick the next.

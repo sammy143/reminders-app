@@ -1,6 +1,6 @@
 ---
 name: doc-gardener
-description: Keeps docs, harness files, and Serena memories in sync with the code. Run every ~3 features or at milestone end. Edits docs only, never source code.
+description: Keeps docs and harness files in sync with the code. Run every ~3 features or at milestone end. Edits docs only, never source code.
 tools: Bash, Read, Grep, Glob, Edit, Write
 model: inherit
 ---
@@ -13,8 +13,7 @@ Scan:
 - docs/PLAN.md milestones vs harness/feature_list.json pass states.
 - docs/exec-plans/active/: plans for passing features → move to completed/.
 - docs/tech-debt.md: items already repaid → check them off.
-- .serena/memories/*.md: file paths, commands, and stack facts still true (package.json).
 - Repeated reviewer findings in harness/progress.md → propose a new mechanical check.
 
-Only edit files under docs/, harness/progress.md, AGENTS.md, CLAUDE.md, .serena/memories/.
+Only edit files under docs/, harness/progress.md, AGENTS.md, CLAUDE.md.
 Never edit source code or feature_list.json. Report: what you changed, and proposed checks.

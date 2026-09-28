@@ -12,7 +12,7 @@ Before coding:
   PRINCIPLES always, PLAN for product rules).
 - UI work: read docs/design/ (DESIGN.md + the screen's export) and match it with NativeWind
   classes; log any deliberate deviation in the exec plan.
-- Navigate code with Serena's symbolic tools (get_symbols_overview, find_symbol) when available.
+- If a local code-navigation MCP (e.g. Serena) is available, use its symbolic tools; otherwise search normally.
 
 While coding:
 - Put decisions in src/domain (pure, `now` injected); platform calls in src/services.
