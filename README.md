@@ -6,6 +6,7 @@
 <p align="center">
   <img src="docs/design/screens/active-alarm.png" width="260" alt="Nag's active alarm: +6 min past your leave-by time" />
 </p>
+<p align="center"><sub>Design mockup of the alarm screen, made with Google Stitch.</sub></p>
 
 ## What this is (and isn't)
 
@@ -51,13 +52,12 @@ Nag, the deadpan blob mascot, mocks the **lateness, never the person**:
 - Settings: default meanness (Mild / Spicy / Savage), default buffer, and "Mute Nag for today".
 
 <p align="center">
-  <img src="docs/design/screens/home.png" width="200" alt="Today screen" />
-  <img src="docs/design/screens/new-appointment.png" width="200" alt="New appointment" />
-  <img src="docs/design/screens/settings.png" width="200" alt="Settings" />
+  <img src="docs/experiment/iphone-today.png" width="230" alt="Today screen on iPhone: a test appointment marked Left" />
+  <img src="docs/experiment/iphone-new-appointment.png" width="230" alt="New appointment screen on iPhone with the Savage preview" />
 </p>
 
-<sub>These are the Stitch design mockups the agents built from; the real app follows them, with the
-deviations listed in `docs/design/README.md`.</sub>
+<sub>Real screenshots from my iPhone running v1 in Expo Go. The blue gear button is Expo Go's
+developer menu, not part of the app.</sub>
 
 ## The experiment
 
@@ -71,7 +71,7 @@ What I wanted to explore:
   the codebase and let them decide what to read, instead of stuffing everything into the prompt.
 - **Claude Code cloud sessions with a human in the loop**: agents build and verify, I run the
   device checks, make product calls and merge.
-- **Stitch (Google) as a design step** feeding coding agents.
+- **[Google Stitch](https://stitch.withgoogle.com/) as a design step** feeding coding agents.
 - **Research and ideation with AI tools**: Claude's search tools and parallel research agents,
   plus a devil's-advocate agent to challenge the idea before a line of code was written.
 
@@ -125,18 +125,23 @@ those embeddings across sessions that don't share any memory.
 
 ```mermaid
 flowchart LR
-  I[init.sh<br/>orient + baseline] --> B[implementer<br/>one feature + tests]
+  I[init.sh<br/>orient + baseline] --> P[exec plan<br/>if non-trivial]
+  P --> B[implementer<br/>one feature + tests]
   B --> V[verifier<br/>tries to break it]
   B --> R[reviewer<br/>adversarial review]
   V --> F{pass?}
   R --> F
-  F -- no, ≤2 rounds --> B
-  F -- yes --> H[human<br/>device check + product calls]
-  H --> M[merge + progress log]
+  F -- "no (max 2 fix rounds)" --> B
+  F -- "still failing" --> X[blocked<br/>ask the human]
+  F -- yes --> PR[PR pushed<br/>device check pending]
+  PR --> H[human<br/>device check + product calls]
+  H -- issues --> B
+  H -- ok --> M[mark passing + log<br/>human merges]
   M --> I
 ```
 
-`/next-feature` runs it. Agent definitions live in `.claude/agents/`.
+`/next-feature` runs it. Agent definitions live in `.claude/agents/`, and a `doc-gardener` agent
+tidies the docs every few features.
 
 ### About the recursion
 
@@ -177,10 +182,10 @@ Loops all the way down. At some point one of them has to actually leave the hous
 | Claude API | $0 — v1 has no API calls; that starts in v2 |
 
 <p align="center">
-  <img src="docs/experiment/cloud-session-credits.png" width="560" alt="Claude cloud session credits: $135 of $250 left after building v1" />
+  <img src="docs/experiment/claude-usage.png" width="640" alt="Claude usage settings: Max (5x) plan, cloud session credit $135 of $250 left" />
 </p>
 
-<sub>Cloud-session credit remaining after v1 was built ($250 − $135 ≈ $115 spent).</sub>
+<sub>My Claude usage page after v1: $135 of the $250 cloud-session credit left (≈ $115 spent).</sub>
 
 ## What I learned
 
@@ -292,12 +297,33 @@ loop above.
 - The project hook in `.claude/settings.json` runs the architecture check after every file edit.
 - Serena or other code-navigation MCP servers are optional; nothing depends on them.
 
-## Roadmap
+## Maybe roadmap
 
 - **v2:** Nag's lines written by Claude, through a small Cloudflare Worker proxy so no API key ever
-  ships in the app, with the fixed lines as an offline fallback.
+  ships in the app, with the fixed lines as an offline fallback. Plus importing events from the
+  phone's calendar.
 - **v3:** detecting that you've actually left home (geofencing, in a development build), plus
   on-time streaks.
+
+### Ideas already in the design mockups
+
+The Stitch mockups went further than v1. Deliberately not built yet, but they make a decent
+wishlist:
+
+- **Home:** an on-time streak ("🔥 4-day on-time streak"), a Tomorrow section, an Upcoming tab,
+  and travel mode per event (drive, metro, walk).
+- **New appointment:** a location field per appointment.
+- **Settings:** set a home location, import from the device calendar, and an "emergency
+  escalation" full-screen takeover at the final step.
+
+<p align="center">
+  <img src="docs/design/screens/home.png" width="200" alt="Home mockup with streak, Tomorrow section and Upcoming tab" />
+  <img src="docs/design/screens/new-appointment.png" width="200" alt="New appointment mockup with a location field" />
+  <img src="docs/design/screens/settings.png" width="200" alt="Settings mockup with calendar import, home location and emergency escalation" />
+</p>
+
+<sub>Design mockups from Google Stitch, not the current app. See `docs/design/README.md` for what
+v1 deliberately left out.</sub>
 
 ## Credits
 
@@ -305,7 +331,9 @@ loop above.
 - Anthropic — [Effective harnesses for long-running agents](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents)
 - Zachary Huang — [Crack Any Codebase with AI](https://www.manning.com/books/crack-any-codebase-with-ai) (Manning MEAP)
 - Geoffrey Huntley — [Ralph](https://ghuntley.com/ralph/)
-- Design mockups made with Google Stitch; built with Expo, React Native and NativeWind.
+- Design mockups made with [Google Stitch](https://stitch.withgoogle.com/); built with
+  [Expo](https://expo.dev/), [React Native](https://reactnative.dev/) and
+  [NativeWind](https://www.nativewind.dev/).
 - My friend, for the idea.
 
 ## License
